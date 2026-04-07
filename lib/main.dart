@@ -9,11 +9,12 @@ import 'task_model.dart';
 import 'task_service.dart';
 
 // --- Bảng màu chuẩn theo mẫu ---
-const kBackgroundColor = Color(0xFF0F1621);
-const kCardColor = Color(0xFF17202E);
+const kBackgroundColor = Color(0xFF1B2333); 
+const kCardColor = Color(0xFF263042); 
 const kPriority1Color = Color(0xFFC9E8A2); // Xanh lá
 const kPriority2Color = Color(0xFF4ED9F5); // Xanh dương
 const kPriority3Color = Color(0xFFCDC1D8); // Tím nhạt
+const kNavbarColor = Color(0xFF121A26); 
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,6 +39,42 @@ class MyApp extends StatelessWidget {
       home: const LoginPage(),
     );
   }
+}
+
+//////////////////////////////////////////////////
+// ================= CLIPPER ====================
+//////////////////////////////////////////////////
+class PriorityCardClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    double bevel = 35.0;
+    double radius = 25.0;
+    Path path = Path();
+    
+    // Start after bevel
+    path.moveTo(bevel, 0);
+    
+    // Top right corner
+    path.lineTo(size.width - radius, 0);
+    path.quadraticBezierTo(size.width, 0, size.width, radius);
+    
+    // Bottom right corner
+    path.lineTo(size.width, size.height - radius);
+    path.quadraticBezierTo(size.width, size.height, size.width - radius, size.height);
+    
+    // Bottom left corner
+    path.lineTo(radius, size.height);
+    path.quadraticBezierTo(0, size.height, 0, size.height - radius);
+    
+    // Bevel point
+    path.lineTo(0, bevel);
+    path.close();
+    
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
 
 //////////////////////////////////////////////////
@@ -89,7 +126,6 @@ class _HomePageState extends State<HomePage> {
   final TextEditingController _descController = TextEditingController();
   DateTime? _selectedDate;
 
-  // 🔥 Hàm mở Dialog thêm Task mới
   void _showAddDialog() {
     _titleController.clear();
     _descController.clear();
@@ -153,7 +189,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // 🔥 Hàm mở Dialog sửa Task
   void _showEditDialog(Task task) {
     final editTitle = TextEditingController(text: task.title);
     final editDesc = TextEditingController(text: task.description);
@@ -260,30 +295,37 @@ class _HomePageState extends State<HomePage> {
             final todoCount = tasks.where((t) => !t.isDone).length;
             final doneCount = tasks.where((t) => t.isDone).length;
 
-            return SingleChildScrollView(
+            return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 10),
                   const Center(
-                    child: Text("Every Day Your\nTask Plan", textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 34, fontWeight: FontWeight.bold, height: 1.1)),
+                    child: Text(
+                      "Every Day Your\nTask Plan",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 36,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        height: 1.2,
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 30),
-
-                  // --- Priority Cards ---
+                  const SizedBox(height: 25),
+                  // --- Thẻ Priority (Giữ cố định) ---
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(child: _buildPriorityCard("In Progress", "$todoCount task", kPriority1Color, Icons.loop, 226, true)),
+                      Expanded(child: _buildPriorityCard("Chưa hoàn thành", "$todoCount task", kPriority1Color, 226, Icons.pending_actions, isLarge: true)),
                       const SizedBox(width: 15),
                       Expanded(
                         child: Column(
                           children: [
-                            _buildPriorityCard("Done", "$doneCount task", kPriority2Color, Icons.check_circle_outline, 105, false),
+                            _buildPriorityCard("Đã hoàn thành", "$doneCount task", kPriority2Color, 105, Icons.check_circle_outline),
                             const SizedBox(height: 16),
-                            _buildPriorityCard("Total", "${tasks.length} task", kPriority3Color, Icons.apps, 105, false),
+                            _buildPriorityCard("Tổng cộng", "${tasks.length} task", kPriority3Color, 105, Icons.apps),
                           ],
                         ),
                       ),
@@ -294,101 +336,137 @@ class _HomePageState extends State<HomePage> {
                   const Text("On Going Task", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 20),
 
-                  // --- Task List ---
-                  if (tasks.isEmpty)
-                    const Center(child: Padding(padding: EdgeInsets.only(top: 20), child: Text("No tasks found"))),
-                  
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: tasks.length,
-                    itemBuilder: (context, index) {
-                      final task = tasks[index];
-                      return Dismissible(
-                        key: Key(task.id ?? index.toString()),
-                        direction: DismissDirection.endToStart,
-                        background: Container(
-                          alignment: Alignment.centerRight,
-                          padding: const EdgeInsets.only(right: 20),
-                          margin: const EdgeInsets.only(bottom: 15),
-                          decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(20)),
-                          child: const Icon(Icons.delete, color: Colors.white),
+                  // --- Phần danh sách Task (Chỉ phần này lướt) ---
+                  Expanded(
+                    child: tasks.isEmpty
+                      ? const Center(child: Text("No tasks found"))
+                      : ListView.builder(
+                          padding: const EdgeInsets.only(bottom: 120), // Tránh đè lên navbar
+                          itemCount: tasks.length,
+                          itemBuilder: (context, index) {
+                            final task = tasks[index];
+                            return Dismissible(
+                              key: Key(task.id ?? index.toString()),
+                              direction: DismissDirection.endToStart,
+                              background: Container(
+                                alignment: Alignment.centerRight,
+                                padding: const EdgeInsets.only(right: 20),
+                                margin: const EdgeInsets.only(bottom: 15),
+                                decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(20)),
+                                child: const Icon(Icons.delete, color: Colors.white),
+                              ),
+                              onDismissed: (_) => _taskService.deleteTask(task.id!),
+                              child: _buildTaskItem(task),
+                            );
+                          },
                         ),
-                        onDismissed: (_) => _taskService.deleteTask(task.id!),
-                        child: _buildTaskItem(task),
-                      );
-                    },
                   ),
-                  const SizedBox(height: 40),
                 ],
               ),
             );
           },
         ),
       ),
-      bottomNavigationBar: BottomAppBar(
-        color: const Color(0xFF0A111A),
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 10,
-        child: Container(
-          height: 65,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              IconButton(icon: const Icon(Icons.home_filled, color: kPriority1Color), onPressed: () {}),
-              IconButton(icon: const Icon(Icons.assignment_outlined, color: Colors.grey), onPressed: () {}),
-              const SizedBox(width: 40),
-              IconButton(icon: const Icon(Icons.show_chart, color: Colors.grey), onPressed: () {}),
-              IconButton(icon: const Icon(Icons.person, color: Colors.grey), onPressed: () {}),
-            ],
-          ),
+      extendBody: true, 
+      bottomNavigationBar: Container(
+        margin: const EdgeInsets.fromLTRB(20, 0, 20, 30),
+        height: 80,
+        decoration: BoxDecoration(
+          color: kNavbarColor,
+          borderRadius: BorderRadius.circular(40),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            IconButton(icon: const Icon(Icons.home_filled, color: kPriority1Color, size: 28), onPressed: () {}),
+            IconButton(icon: const Icon(Icons.fact_check_outlined, color: Colors.grey, size: 28), onPressed: () {}),
+            GestureDetector(
+              onTap: _showAddDialog,
+              child: Container(
+                width: 55,
+                height: 55,
+                decoration: const BoxDecoration(
+                  color: kPriority1Color,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.add, color: Colors.black, size: 35),
+              ),
+            ),
+            IconButton(icon: const Icon(Icons.auto_graph_rounded, color: Colors.grey, size: 28), onPressed: () {}),
+            IconButton(icon: const Icon(Icons.person_outline, color: Colors.grey, size: 28), onPressed: () {}),
+          ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddDialog, // 🔥 Đã gắn chức năng thêm!
-        backgroundColor: kPriority1Color,
-        elevation: 0,
-        child: const Icon(Icons.add, color: Colors.black, size: 30),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }
 
-  Widget _buildPriorityCard(String title, String count, Color color, IconData icon, double height, bool isLarge) {
-    return Container(
-      height: height,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.only(
-          topLeft: const Radius.circular(24),
-          bottomRight: const Radius.circular(24),
-          bottomLeft: const Radius.circular(24),
-          topRight: isLarge ? const Radius.circular(70) : const Radius.circular(24),
+  Widget _buildPriorityCard(String title, String count, Color color, double height, IconData icon, {bool isLarge = false}) {
+    Widget iconBox = Transform.rotate(
+      angle: 0.785,
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: kBackgroundColor.withOpacity(0.9),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Transform.rotate(
+          angle: -0.785,
+          child: Icon(icon, color: color, size: 24),
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Transform.rotate(
-            angle: 0.785,
-            child: Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(color: kBackgroundColor, borderRadius: BorderRadius.circular(8)),
-              child: Transform.rotate(angle: -0.785, child: Icon(icon, color: color, size: 18)),
+    );
+
+    return ClipPath(
+      clipper: PriorityCardClipper(),
+      child: Container(
+        height: height,
+        width: double.infinity,
+        color: color,
+        padding: const EdgeInsets.all(18),
+        child: isLarge 
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(child: Padding(padding: const EdgeInsets.only(top: 20), child: iconBox)),
+                const Spacer(),
+                Text(title, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
+                const SizedBox(height: 4),
+                Text(count, style: TextStyle(color: Colors.black.withOpacity(0.6), fontSize: 14, fontWeight: FontWeight.w500)),
+              ],
+            )
+          : Row(
+              children: [
+                iconBox,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(title, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 15)),
+                      ),
+                      Text(count, style: TextStyle(color: Colors.black.withOpacity(0.6), fontSize: 12, fontWeight: FontWeight.w500)),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ),
-          const Spacer(),
-          FittedBox(fit: BoxFit.scaleDown, child: Text(title, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16))),
-          Text(count, style: TextStyle(color: Colors.black.withOpacity(0.6), fontSize: 12)),
-        ],
       ),
     );
   }
 
   Widget _buildTaskItem(Task task) {
     return GestureDetector(
-      onTap: () => _showEditDialog(task), // 🔥 Nhấn để sửa
+      onTap: () => _showEditDialog(task),
       child: Container(
         margin: const EdgeInsets.only(bottom: 15),
         padding: const EdgeInsets.all(16),
@@ -398,7 +476,7 @@ class _HomePageState extends State<HomePage> {
             Row(
               children: [
                 GestureDetector(
-                  onTap: () => _taskService.toggleDone(task), // 🔥 Bấm vào icon để hoàn thành
+                  onTap: () => _taskService.toggleDone(task),
                   child: Transform.rotate(
                     angle: 0.785,
                     child: Container(
