@@ -7,6 +7,8 @@ import 'auth_service.dart';
 import 'user_service.dart';
 import 'task_model.dart';
 import 'task_service.dart';
+import 'add_task_page.dart';
+import 'my_tasks_page.dart';
 
 // --- Bảng màu chuẩn theo mẫu ---
 const kBackgroundColor = Color(0xFF1B2333); 
@@ -42,37 +44,48 @@ class MyApp extends StatelessWidget {
 }
 
 //////////////////////////////////////////////////
-// ================= CLIPPER ====================
+// ================= CLIPPERS ===================
 //////////////////////////////////////////////////
+
 class PriorityCardClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
     double bevel = 35.0;
     double radius = 25.0;
     Path path = Path();
-    
-    // Start after bevel
     path.moveTo(bevel, 0);
-    
-    // Top right corner
     path.lineTo(size.width - radius, 0);
     path.quadraticBezierTo(size.width, 0, size.width, radius);
-    
-    // Bottom right corner
     path.lineTo(size.width, size.height - radius);
     path.quadraticBezierTo(size.width, size.height, size.width - radius, size.height);
-    
-    // Bottom left corner
     path.lineTo(radius, size.height);
     path.quadraticBezierTo(0, size.height, 0, size.height - radius);
-    
-    // Bevel point
     path.lineTo(0, bevel);
     path.close();
-    
     return path;
   }
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
+}
 
+class TaskCardClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    double radius = 20.0;
+    double bevel = 30.0;
+    Path path = Path();
+    path.moveTo(radius, 0);
+    path.lineTo(size.width - bevel, 0);
+    path.lineTo(size.width, bevel);
+    path.lineTo(size.width, size.height - radius);
+    path.quadraticBezierTo(size.width, size.height, size.width - radius, size.height);
+    path.lineTo(radius, size.height);
+    path.quadraticBezierTo(0, size.height, 0, size.height - radius);
+    path.lineTo(0, radius);
+    path.quadraticBezierTo(0, 0, radius, 0);
+    path.close();
+    return path;
+  }
   @override
   bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
@@ -80,34 +93,559 @@ class PriorityCardClipper extends CustomClipper<Path> {
 //////////////////////////////////////////////////
 // ================= LOGIN PAGE =================
 //////////////////////////////////////////////////
-class LoginPage extends StatelessWidget {
+class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
+
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  bool isLoading = false;
+
+  Future<void> _handleGoogleLogin() async {
+    if (isLoading) return;
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final user = await AuthService().signInWithGoogle();
+
+      if (user != null) {
+        await UserService().saveUser(user);
+
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const HomePage()),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Đăng nhập thất bại: $e'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: kPriority1Color,
-            foregroundColor: Colors.black,
-            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+      backgroundColor: const Color(0xFF031527),
+      body: Stack(
+        children: [
+          const _SystemBackground(),
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 440),
+                  child: _SystemPanel(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const _MissionTitle(),
+                        const SizedBox(height: 28),
+                        _GoogleSystemButton(
+                          text: isLoading
+                              ? 'ĐANG KÍCH HOẠT...'
+                              : 'Login with Google',
+                          onTap: isLoading ? null : _handleGoogleLogin,
+                        ),
+                        const SizedBox(height: 24),
+                        Text(
+                          'HÀNH TRÌNH CẰM NHỌN BẮT ĐẦU',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.72),
+                            fontSize: 12,
+                            letterSpacing: 2.6,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ),
-          onPressed: () async {
-            final user = await AuthService().signInWithGoogle();
-            if (user != null) {
-              await UserService().saveUser(user);
-              if (!context.mounted) return;
-              Navigator.pushReplacement(
-                  context, MaterialPageRoute(builder: (_) => const HomePage()));
-            }
-          },
-          child: const Text("Login with Google",
-              style: TextStyle(fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+}
+
+class _SystemPanel extends StatelessWidget {
+  final Widget child;
+
+  const _SystemPanel({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: _PanelPainter(),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.fromLTRB(24, 26, 24, 30),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xCC0A2740),
+              Color(0xCC071D31),
+              Color(0xCC0D304B),
+            ],
+            stops: [0.0, 0.45, 1.0],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF4FD8FF).withOpacity(0.22),
+              blurRadius: 40,
+              spreadRadius: 2,
+            ),
+            BoxShadow(
+              color: const Color(0xFF8EEBFF).withOpacity(0.12),
+              blurRadius: 100,
+              spreadRadius: 10,
+            ),
+          ],
+        ),
+        child: child,
+      ),
+    );
+  }
+}
+
+class _MissionTitle extends StatelessWidget {
+  const _MissionTitle();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        const Text(
+          'NHIỆM VỤ HỆ THỐNG',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 25,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 2.8,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          'Login',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.white.withOpacity(0.92),
+            fontSize: 17,
+            fontWeight: FontWeight.w500,
+            letterSpacing: 1.1,
+          ),
+        ),
+        const SizedBox(height: 14),
+        Row(
+          children: [
+            Expanded(
+              child: Container(
+                height: 1.4,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.transparent,
+                      const Color(0xFF8AF0FF).withOpacity(0.85),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Container(
+              width: 44,
+              height: 2.6,
+              margin: const EdgeInsets.symmetric(horizontal: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFCBFAFF),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFA9F2FF).withOpacity(0.95),
+                    blurRadius: 10,
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Container(
+                height: 1.4,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      const Color(0xFF8AF0FF).withOpacity(0.85),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _GoogleSystemButton extends StatelessWidget {
+  final String text;
+  final VoidCallback? onTap;
+
+  const _GoogleSystemButton({
+    required this.text,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: CustomPaint(
+        painter: _ButtonPainter(),
+        child: Container(
+          width: double.infinity,
+          height: 64,
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.g_mobiledata_rounded,
+                color: Colors.white,
+                size: 34,
+              ),
+              const SizedBox(width: 10),
+              Flexible(
+                child: Text(
+                  text,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 21,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+}
+
+class _SystemBackground extends StatelessWidget {
+  const _SystemBackground();
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _BackgroundPainter(),
+            ),
+          ),
+          Positioned(
+            top: 90,
+            left: 24,
+            right: 24,
+            child: Container(
+              height: 2.4,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.transparent,
+                    const Color(0xFF63DFFF).withOpacity(0.25),
+                    const Color(0xFFD6FCFF),
+                    const Color(0xFF63DFFF).withOpacity(0.25),
+                    Colors.transparent,
+                  ],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF8EEFFF).withOpacity(0.75),
+                    blurRadius: 22,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PanelPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    const lineColor = Color(0xFFE4FDFF);
+    const glowColor = Color(0xFF36CFFF);
+
+    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
+
+    final fillPaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          Color(0x2A1B5D86),
+          Color(0x12081B2B),
+          Color(0x2A1E6C99),
+        ],
+      ).createShader(rect);
+
+    canvas.drawRect(rect, fillPaint);
+
+    final glowPaint = Paint()
+      ..color = glowColor.withOpacity(0.82)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.4
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 11);
+
+    final linePaint = Paint()
+      ..color = lineColor.withOpacity(0.98)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.25;
+
+    const cut = 18.0;
+    final path = Path()
+      ..moveTo(cut, 0)
+      ..lineTo(size.width - cut, 0)
+      ..lineTo(size.width, cut)
+      ..lineTo(size.width, size.height - cut)
+      ..lineTo(size.width - cut, size.height)
+      ..lineTo(cut, size.height)
+      ..lineTo(0, size.height - cut)
+      ..lineTo(0, cut)
+      ..close();
+
+    canvas.drawPath(path, glowPaint);
+    canvas.drawPath(path, linePaint);
+
+    _corner(canvas, const Offset(0, 0), left: true, top: true);
+    _corner(canvas, Offset(size.width, 0), left: false, top: true);
+    _corner(canvas, Offset(0, size.height), left: true, top: false);
+    _corner(canvas, Offset(size.width, size.height), left: false, top: false);
+
+    final topAccent = Paint()
+      ..color = const Color(0xFFD8FCFF).withOpacity(0.95)
+      ..strokeWidth = 1.4;
+
+    canvas.drawLine(
+      const Offset(20, 0),
+      Offset(size.width * 0.30, 0),
+      topAccent,
+    );
+    canvas.drawLine(
+      Offset(size.width * 0.70, 0),
+      Offset(size.width - 20, 0),
+      topAccent,
+    );
+
+    final sideGlow = Paint()
+      ..color = const Color(0xFF59DCFF).withOpacity(0.62)
+      ..strokeWidth = 2.8
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 9);
+
+    canvas.drawLine(
+      const Offset(0, 18),
+      Offset(0, size.height - 18),
+      sideGlow,
+    );
+    canvas.drawLine(
+      Offset(size.width, 18),
+      Offset(size.width, size.height - 18),
+      sideGlow,
+    );
+  }
+
+  void _corner(
+      Canvas canvas,
+      Offset origin, {
+        required bool left,
+        required bool top,
+      }) {
+    final glow = Paint()
+      ..color = const Color(0xFF73EAFF).withOpacity(0.80)
+      ..strokeWidth = 2.1
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+
+    final line = Paint()
+      ..color = const Color(0xFFE4FDFF).withOpacity(0.98)
+      ..strokeWidth = 1.5;
+
+    const long = 24.0;
+    const short = 9.0;
+
+    final dx = left ? 1.0 : -1.0;
+    final dy = top ? 1.0 : -1.0;
+
+    final h1 = origin + Offset(dx * short, 0);
+    final h2 = origin + Offset(dx * long, 0);
+    final v1 = origin + Offset(0, dy * short);
+    final v2 = origin + Offset(0, dy * long);
+
+    canvas.drawLine(h1, h2, glow);
+    canvas.drawLine(v1, v2, glow);
+    canvas.drawLine(h1, h2, line);
+    canvas.drawLine(v1, v2, line);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _ButtonPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
+
+    final fillPaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          Color(0xFF2E89C3),
+          Color(0xFF49A9E2),
+          Color(0xFF328FCA),
+          Color(0xFF236B9D),
+        ],
+        stops: [0.0, 0.35, 0.7, 1.0],
+      ).createShader(rect);
+
+    final innerGlowPaint = Paint()
+      ..shader = RadialGradient(
+        colors: [
+          const Color(0x88E8FEFF),
+          const Color(0x22B8F3FF),
+          Colors.transparent,
+        ],
+      ).createShader(
+        Rect.fromCircle(
+          center: Offset(size.width / 2, size.height / 2),
+          radius: size.width * 0.55,
+        ),
+      );
+
+    final glowPaint = Paint()
+      ..color = const Color(0xFF68E7FF).withOpacity(1)
+      ..strokeWidth = 2.8
+      ..style = PaintingStyle.stroke
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
+
+    final linePaint = Paint()
+      ..color = const Color(0xFFF4FFFF)
+      ..strokeWidth = 1.45
+      ..style = PaintingStyle.stroke;
+
+    const cut = 16.0;
+    final path = Path()
+      ..moveTo(cut, 0)
+      ..lineTo(size.width - cut, 0)
+      ..lineTo(size.width, cut)
+      ..lineTo(size.width, size.height - cut)
+      ..lineTo(size.width - cut, size.height)
+      ..lineTo(cut, size.height)
+      ..lineTo(0, size.height - cut)
+      ..lineTo(0, cut)
+      ..close();
+
+    canvas.drawPath(path, fillPaint);
+    canvas.drawPath(path, innerGlowPaint);
+    canvas.drawPath(path, glowPaint);
+    canvas.drawPath(path, linePaint);
+
+    final sideGlow = Paint()
+      ..color = const Color(0xFFFFFFFF).withOpacity(0.98)
+      ..strokeWidth = 2.0
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 9);
+
+    canvas.drawLine(
+      Offset(12, size.height / 2),
+      Offset(30, size.height / 2),
+      sideGlow,
+    );
+    canvas.drawLine(
+      Offset(size.width - 12, size.height / 2),
+      Offset(size.width - 30, size.height / 2),
+      sideGlow,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _BackgroundPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final base = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Color(0xFF041628),
+          Color(0xFF08233A),
+          Color(0xFF041628),
+        ],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), base);
+
+    final centerGlow = Paint()
+      ..shader = RadialGradient(
+        colors: [
+          const Color(0xFF2B8BC5).withOpacity(0.30),
+          const Color(0xFF14527B).withOpacity(0.14),
+          Colors.transparent,
+        ],
+      ).createShader(
+        Rect.fromCircle(
+          center: Offset(size.width / 2, size.height / 2),
+          radius: size.width * 0.95,
+        ),
+      );
+
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, size.width, size.height),
+      centerGlow,
+    );
+
+    final dotPaint = Paint()
+      ..color = const Color(0xFFC8FAFF).withOpacity(0.18);
+
+    for (double y = 40; y < size.height; y += 120) {
+      canvas.drawCircle(Offset(28, y), 1.4, dotPaint);
+      canvas.drawCircle(Offset(size.width - 28, y + 40), 1.4, dotPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 //////////////////////////////////////////////////
@@ -122,69 +660,44 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final TaskService _taskService = TaskService();
-  final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _descController = TextEditingController();
-  DateTime? _selectedDate;
 
-  void _showAddDialog() {
-    _titleController.clear();
-    _descController.clear();
-    _selectedDate = null;
+  IconData _getTaskIcon(String title) {
+    final t = title.toLowerCase();
+    if (t.contains('chạy') || t.contains('run') || t.contains('thể dục')) return Icons.directions_run;
+    if (t.contains('gym') || t.contains('tập')) return Icons.fitness_center;
+    if (t.contains('học') || t.contains('bài') || t.contains('study')) return Icons.book;
+    if (t.contains('ngủ') || t.contains('sleep')) return Icons.bed;
+    if (t.contains('làm') || t.contains('work')) return Icons.work;
+    if (t.contains('ăn') || t.contains('uống') || t.contains('eat')) return Icons.restaurant;
+    if (t.contains('code') || t.contains('lập trình')) return Icons.code;
+    if (t.contains('phim') || t.contains('movie')) return Icons.movie;
+    if (t.contains('mua') || t.contains('shop')) return Icons.shopping_cart;
+    if (t.contains('cafe')) return Icons.local_cafe;
+    return Icons.assignment_outlined;
+  }
+
+  void _confirmDelete(Task task) {
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: kCardColor,
-          title: const Text("New Task"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(controller: _titleController, decoration: const InputDecoration(labelText: "Task Title")),
-              TextField(controller: _descController, decoration: const InputDecoration(labelText: "Project/Description")),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Text(_selectedDate == null ? "No Deadline" : DateFormat('dd/MM/yyyy').format(_selectedDate!)),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.calendar_today, color: kPriority2Color),
-                    onPressed: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: DateTime.now(),
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime(2100),
-                      );
-                      if (picked != null) setDialogState(() => _selectedDate = picked);
-                    },
-                  )
-                ],
-              )
-            ],
+      builder: (context) => AlertDialog(
+        backgroundColor: kCardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text("Xác nhận xóa"),
+        content: Text("Bạn có chắc chắn muốn xóa task \"${task.title}\" không?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Hủy", style: TextStyle(color: Colors.grey)),
           ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
-            ElevatedButton(
-              onPressed: () async {
-                final user = FirebaseAuth.instance.currentUser;
-                if (_titleController.text.isNotEmpty && user != null) {
-                  final task = Task(
-                    title: _titleController.text,
-                    description: _descController.text,
-                    userId: user.uid,
-                    isDone: false,
-                    createdAt: DateTime.now(),
-                    dueDate: _selectedDate,
-                  );
-                  await _taskService.addTask(task);
-                  if (!context.mounted) return;
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text("Create"),
-            ),
-          ],
-        ),
+          TextButton(
+            onPressed: () async {
+              await _taskService.deleteTask(task.id!);
+              if (!mounted) return;
+              Navigator.pop(context);
+            },
+            child: const Text("Xóa", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+          ),
+        ],
       ),
     );
   }
@@ -192,60 +705,141 @@ class _HomePageState extends State<HomePage> {
   void _showEditDialog(Task task) {
     final editTitle = TextEditingController(text: task.title);
     final editDesc = TextEditingController(text: task.description);
-    DateTime? tempDate = task.dueDate;
+    DateTime? tempDay = task.dueDate;
+    TimeOfDay? tempStartTime = task.startTime != null ? TimeOfDay.fromDateTime(task.startTime!) : null;
+    TimeOfDay? tempEndTime = task.endTime != null ? TimeOfDay.fromDateTime(task.endTime!) : null;
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: kCardColor,
-          title: const Text("Edit Task"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(controller: editTitle, decoration: const InputDecoration(labelText: "Title")),
-              TextField(controller: editDesc, decoration: const InputDecoration(labelText: "Description")),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Text(tempDate == null ? "No Deadline" : DateFormat('dd/MM/yyyy').format(tempDate!)),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.calendar_today, color: kPriority2Color),
-                    onPressed: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: tempDate ?? DateTime.now(),
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime(2100),
-                      );
-                      if (picked != null) setDialogState(() => tempDate = picked);
-                    },
-                  )
-                ],
-              )
-            ],
+          title: const Text("Sửa Task"),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(controller: editTitle, decoration: const InputDecoration(labelText: "Tiêu đề")),
+                TextField(controller: editDesc, decoration: const InputDecoration(labelText: "Mô tả")),
+                const SizedBox(height: 15),
+                // Chọn ngày
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(tempDay == null ? "Chọn ngày" : DateFormat('dd/MM/yyyy').format(tempDay!)),
+                  trailing: const Icon(Icons.calendar_today, color: kPriority2Color),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: tempDay ?? DateTime.now(),
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime(2100),
+                    );
+                    if (picked != null) setDialogState(() => tempDay = picked);
+                  },
+                ),
+                // Giờ bắt đầu
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(tempStartTime == null ? "Bắt đầu" : tempStartTime!.format(context)),
+                  trailing: const Icon(Icons.access_time, color: kPriority2Color),
+                  onTap: () async {
+                    final picked = await showTimePicker(context: context, initialTime: tempStartTime ?? TimeOfDay.now());
+                    if (picked != null) setDialogState(() => tempStartTime = picked);
+                  },
+                ),
+                // Giờ kết thúc
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(tempEndTime == null ? "Kết thúc" : tempEndTime!.format(context)),
+                  trailing: const Icon(Icons.access_time, color: kPriority2Color),
+                  onTap: () async {
+                    final picked = await showTimePicker(context: context, initialTime: tempEndTime ?? TimeOfDay.now());
+                    if (picked != null) setDialogState(() => tempEndTime = picked);
+                  },
+                ),
+              ],
+            ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Hủy")),
             ElevatedButton(
               onPressed: () async {
-                if (editTitle.text.isNotEmpty) {
+                if (editTitle.text.isNotEmpty && tempDay != null && tempStartTime != null && tempEndTime != null) {
+                  final start = DateTime(tempDay!.year, tempDay!.month, tempDay!.day, tempStartTime!.hour, tempStartTime!.minute);
+                  final end = DateTime(tempDay!.year, tempDay!.month, tempDay!.day, tempEndTime!.hour, tempEndTime!.minute);
+                  
+                  // 🔥 Kiểm tra trùng lịch khi sửa (trừ chính nó)
+                  final isOverlapping = await _taskService.isTimeOverlapping(task.userId, start, end, excludeId: task.id);
+                  if (isOverlapping) {
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Trùng lịch với task khác!"), backgroundColor: Colors.redAccent));
+                    return;
+                  }
+
                   final updatedTask = Task(
                     id: task.id,
                     userId: task.userId,
                     title: editTitle.text,
                     description: editDesc.text,
                     createdAt: task.createdAt,
-                    dueDate: tempDate,
+                    dueDate: tempDay,
+                    startTime: start,
+                    endTime: end,
                     isDone: task.isDone,
+                    iconCode: task.iconCode,
                   );
                   await _taskService.updateTask(updatedTask);
                   if (!context.mounted) return;
                   Navigator.pop(context);
                 }
               },
-              child: const Text("Save"),
+              child: const Text("Lưu"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showTaskDetail(Task task) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: kBackgroundColor,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(30))),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(30),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(task.iconCode != null ? IconData(task.iconCode!, fontFamily: 'MaterialIcons') : _getTaskIcon(task.title), color: kPriority1Color, size: 40),
+                const SizedBox(width: 15),
+                Expanded(
+                  child: Text(task.title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            const Text("Mô tả:", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 5),
+            Text(task.description.isEmpty ? "Không có mô tả" : task.description, style: const TextStyle(fontSize: 16)),
+            const SizedBox(height: 20),
+            const Text("Thời gian:", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 5),
+            Text(
+              "${task.startTime != null ? DateFormat('HH:mm').format(task.startTime!) : '--:--'} - ${task.endTime != null ? DateFormat('HH:mm').format(task.endTime!) : '--:--'}, ${task.dueDate != null ? DateFormat('dd/MM/yyyy').format(task.dueDate!) : ''}", 
+              style: const TextStyle(fontSize: 16, color: kPriority2Color)
+            ),
+            const SizedBox(height: 30),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: kPriority1Color, foregroundColor: Colors.black),
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Đóng"),
+              ),
             ),
           ],
         ),
@@ -256,6 +850,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
+    final now = DateTime.now();
 
     return Scaffold(
       appBar: AppBar(
@@ -291,9 +886,28 @@ class _HomePageState extends State<HomePage> {
         child: StreamBuilder<List<Task>>(
           stream: _taskService.getTasks(user?.uid ?? ''),
           builder: (context, snapshot) {
-            final tasks = snapshot.data ?? [];
-            final todoCount = tasks.where((t) => !t.isDone).length;
-            final doneCount = tasks.where((t) => t.isDone).length;
+            final allTasks = snapshot.data ?? [];
+            
+            // 🔥 Lọc task chỉ trong ngày hôm nay cho On Going Task
+            final todayTasks = allTasks.where((t) {
+              if (t.dueDate == null) return false;
+              return t.dueDate!.year == now.year &&
+                     t.dueDate!.month == now.month &&
+                     t.dueDate!.day == now.day;
+            }).toList();
+
+            // Sắp xếp: Task hết hạn hoặc đã xong xuống cuối
+            todayTasks.sort((a, b) {
+              bool aIsExpired = !a.isDone && a.endTime != null && now.isAfter(a.endTime!);
+              bool bIsExpired = !b.isDone && b.endTime != null && now.isAfter(b.endTime!);
+              
+              if (aIsExpired != bIsExpired) return aIsExpired ? 1 : -1;
+              if (a.isDone != b.isDone) return a.isDone ? 1 : -1;
+              return a.startTime?.compareTo(b.startTime ?? DateTime.now()) ?? 0;
+            });
+
+            final todoCount = allTasks.where((t) => !t.isDone).length;
+            final doneCount = allTasks.where((t) => t.isDone).length;
 
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -314,7 +928,6 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                   const SizedBox(height: 25),
-                  // --- Thẻ Priority (Giữ cố định) ---
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -325,7 +938,7 @@ class _HomePageState extends State<HomePage> {
                           children: [
                             _buildPriorityCard("Đã hoàn thành", "$doneCount task", kPriority2Color, 105, Icons.check_circle_outline),
                             const SizedBox(height: 16),
-                            _buildPriorityCard("Tổng cộng", "${tasks.length} task", kPriority3Color, 105, Icons.apps),
+                            _buildPriorityCard("Tổng cộng", "${allTasks.length} task", kPriority3Color, 105, Icons.apps),
                           ],
                         ),
                       ),
@@ -336,28 +949,16 @@ class _HomePageState extends State<HomePage> {
                   const Text("On Going Task", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 20),
 
-                  // --- Phần danh sách Task (Chỉ phần này lướt) ---
+                  // --- Phần danh sách Task ---
                   Expanded(
-                    child: tasks.isEmpty
-                      ? const Center(child: Text("No tasks found"))
+                    child: todayTasks.isEmpty
+                      ? const Center(child: Text("Hôm nay chưa có task nào"))
                       : ListView.builder(
-                          padding: const EdgeInsets.only(bottom: 120), // Tránh đè lên navbar
-                          itemCount: tasks.length,
+                          padding: const EdgeInsets.only(bottom: 120),
+                          itemCount: todayTasks.length,
                           itemBuilder: (context, index) {
-                            final task = tasks[index];
-                            return Dismissible(
-                              key: Key(task.id ?? index.toString()),
-                              direction: DismissDirection.endToStart,
-                              background: Container(
-                                alignment: Alignment.centerRight,
-                                padding: const EdgeInsets.only(right: 20),
-                                margin: const EdgeInsets.only(bottom: 15),
-                                decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(20)),
-                                child: const Icon(Icons.delete, color: Colors.white),
-                              ),
-                              onDismissed: (_) => _taskService.deleteTask(task.id!),
-                              child: _buildTaskItem(task),
-                            );
+                            final task = todayTasks[index];
+                            return _buildDismissibleTaskItem(task);
                           },
                         ),
                   ),
@@ -386,9 +987,16 @@ class _HomePageState extends State<HomePage> {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             IconButton(icon: const Icon(Icons.home_filled, color: kPriority1Color, size: 28), onPressed: () {}),
-            IconButton(icon: const Icon(Icons.fact_check_outlined, color: Colors.grey, size: 28), onPressed: () {}),
+            IconButton(
+              icon: const Icon(Icons.fact_check_outlined, color: Colors.grey, size: 28), 
+              onPressed: () {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const MyTasksPage()));
+              }
+            ),
             GestureDetector(
-              onTap: _showAddDialog,
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const AddTaskPage()));
+              },
               child: Container(
                 width: 55,
                 height: 55,
@@ -403,6 +1011,30 @@ class _HomePageState extends State<HomePage> {
             IconButton(icon: const Icon(Icons.person_outline, color: Colors.grey, size: 28), onPressed: () {}),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildDismissibleTaskItem(Task task) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 15),
+      child: Dismissible(
+        key: Key(task.id!),
+        direction: DismissDirection.endToStart,
+        confirmDismiss: (direction) async {
+          _confirmDelete(task);
+          return false;
+        },
+        background: Container(
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          decoration: BoxDecoration(
+            color: Colors.redAccent,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: const Icon(Icons.delete, color: Colors.white, size: 30),
+        ),
+        child: _buildTaskItem(task),
       ),
     );
   }
@@ -465,73 +1097,112 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildTaskItem(Task task) {
-    return GestureDetector(
-      onTap: () => _showEditDialog(task),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 15),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: kCardColor, borderRadius: BorderRadius.circular(20)),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                GestureDetector(
-                  onTap: () => _taskService.toggleDone(task),
-                  child: Transform.rotate(
-                    angle: 0.785,
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: task.isDone ? kPriority1Color : kBackgroundColor,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Transform.rotate(
-                        angle: -0.785,
-                        child: Icon(task.isDone ? Icons.check : Icons.grid_view_rounded, 
-                             color: task.isDone ? Colors.black : kPriority2Color, size: 22),
+    bool isExpired = !task.isDone && task.endTime != null && DateTime.now().isAfter(task.endTime!);
+    Color taskIconColor = task.isDone ? kPriority1Color : (isExpired ? Colors.redAccent : kPriority3Color);
+
+    return Opacity(
+      opacity: isExpired ? 0.5 : 1.0,
+      child: ClipPath(
+        clipper: TaskCardClipper(),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(color: kCardColor),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: isExpired ? null : () => _taskService.toggleDone(task),
+                    child: Transform.rotate(
+                      angle: 0.785,
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: kBackgroundColor,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Transform.rotate(
+                          angle: -0.785,
+                          child: Icon(
+                            task.isDone ? Icons.check : (task.iconCode != null ? IconData(task.iconCode!, fontFamily: 'MaterialIcons') : _getTaskIcon(task.title)), 
+                            color: taskIconColor, 
+                            size: 22
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 15),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(task.title, style: TextStyle(
-                        fontSize: 16, 
-                        fontWeight: FontWeight.bold,
-                        decoration: task.isDone ? TextDecoration.lineThrough : null,
-                        color: task.isDone ? Colors.grey : Colors.white,
-                      )),
-                      Text(task.description.isEmpty ? "Client project" : task.description, 
-                           style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                  const SizedBox(width: 15),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(task.title, style: TextStyle(
+                          fontSize: 16, 
+                          fontWeight: FontWeight.bold, 
+                          color: Colors.white,
+                          decoration: (task.isDone || isExpired) ? TextDecoration.lineThrough : null,
+                        )),
+                        const SizedBox(height: 4),
+                        Text(
+                          task.startTime != null && task.endTime != null
+                            ? "${DateFormat('HH:mm').format(task.startTime!)} - ${DateFormat('HH:mm').format(task.endTime!)}${isExpired ? ' (Expired)' : ''}"
+                            : "No time set",
+                          style: TextStyle(color: isExpired ? Colors.redAccent : Colors.grey, fontSize: 13)
+                        ),
+                      ],
+                    ),
+                  ),
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert, color: Colors.grey),
+                    color: kCardColor,
+                    onSelected: (value) {
+                      if (value == 'edit') {
+                        _showEditDialog(task);
+                      } else if (value == 'detail') {
+                        _showTaskDetail(task);
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(value: 'detail', child: Text("Xem chi tiết")),
+                      if (!isExpired) const PopupMenuItem(value: 'edit', child: Text("Sửa task")),
                     ],
                   ),
-                ),
-                const Icon(Icons.more_vert, color: Colors.grey),
-              ],
-            ),
-            const SizedBox(height: 15),
-            Row(
-              children: [
-                const SizedBox(width: 45),
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: LinearProgressIndicator(
-                      value: task.isDone ? 1.0 : 0.0,
-                      backgroundColor: kBackgroundColor,
-                      valueColor: AlwaysStoppedAnimation<Color>(task.isDone ? kPriority1Color : kPriority2Color),
-                      minHeight: 6,
+                ],
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  SizedBox(
+                    width: 65,
+                    height: 25,
+                    child: Stack(
+                      children: [
+                        Positioned(left: 0, child: CircleAvatar(radius: 12, backgroundColor: Colors.orange, child: const Icon(Icons.person, size: 15, color: Colors.white))),
+                        Positioned(left: 18, child: CircleAvatar(radius: 12, backgroundColor: Colors.blue, child: const Icon(Icons.person, size: 15, color: Colors.white))),
+                        Positioned(left: 36, child: CircleAvatar(radius: 12, backgroundColor: Colors.purple, child: const Icon(Icons.person, size: 15, color: Colors.white))),
+                      ],
                     ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Text(task.isDone ? "100%" : "0%", style: const TextStyle(color: Colors.grey, fontSize: 12)),
-              ],
-            ),
-          ],
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: LinearProgressIndicator(
+                        value: task.isDone ? 1.0 : 0.0,
+                        backgroundColor: kBackgroundColor,
+                        valueColor: AlwaysStoppedAnimation<Color>(isExpired ? Colors.redAccent.withOpacity(0.5) : taskIconColor),
+                        minHeight: 6,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(task.isDone ? "100%" : "0%", style: TextStyle(color: taskIconColor, fontSize: 13, fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
