@@ -9,6 +9,7 @@ import 'task_model.dart';
 import 'task_service.dart';
 import 'add_task_page.dart';
 import 'my_tasks_page.dart';
+import 'edit_task_page.dart';
 
 // --- Bảng màu chuẩn theo mẫu ---
 const kBackgroundColor = Color(0xFF1B2333); 
@@ -702,105 +703,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void _showEditDialog(Task task) {
-    final editTitle = TextEditingController(text: task.title);
-    final editDesc = TextEditingController(text: task.description);
-    DateTime? tempDay = task.dueDate;
-    TimeOfDay? tempStartTime = task.startTime != null ? TimeOfDay.fromDateTime(task.startTime!) : null;
-    TimeOfDay? tempEndTime = task.endTime != null ? TimeOfDay.fromDateTime(task.endTime!) : null;
-
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: kCardColor,
-          title: const Text("Sửa Task"),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(controller: editTitle, decoration: const InputDecoration(labelText: "Tiêu đề")),
-                TextField(controller: editDesc, decoration: const InputDecoration(labelText: "Mô tả")),
-                const SizedBox(height: 15),
-                // Chọn ngày
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(tempDay == null ? "Chọn ngày" : DateFormat('dd/MM/yyyy').format(tempDay!)),
-                  trailing: const Icon(Icons.calendar_today, color: kPriority2Color),
-                  onTap: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      initialDate: tempDay ?? DateTime.now(),
-                      firstDate: DateTime.now(),
-                      lastDate: DateTime(2100),
-                    );
-                    if (picked != null) setDialogState(() => tempDay = picked);
-                  },
-                ),
-                // Giờ bắt đầu
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(tempStartTime == null ? "Bắt đầu" : tempStartTime!.format(context)),
-                  trailing: const Icon(Icons.access_time, color: kPriority2Color),
-                  onTap: () async {
-                    final picked = await showTimePicker(context: context, initialTime: tempStartTime ?? TimeOfDay.now());
-                    if (picked != null) setDialogState(() => tempStartTime = picked);
-                  },
-                ),
-                // Giờ kết thúc
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(tempEndTime == null ? "Kết thúc" : tempEndTime!.format(context)),
-                  trailing: const Icon(Icons.access_time, color: kPriority2Color),
-                  onTap: () async {
-                    final picked = await showTimePicker(context: context, initialTime: tempEndTime ?? TimeOfDay.now());
-                    if (picked != null) setDialogState(() => tempEndTime = picked);
-                  },
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Hủy")),
-            ElevatedButton(
-              onPressed: () async {
-                if (editTitle.text.isNotEmpty && tempDay != null && tempStartTime != null && tempEndTime != null) {
-                  final start = DateTime(tempDay!.year, tempDay!.month, tempDay!.day, tempStartTime!.hour, tempStartTime!.minute);
-                  final end = DateTime(tempDay!.year, tempDay!.month, tempDay!.day, tempEndTime!.hour, tempEndTime!.minute);
-                  
-                  // 🔥 Kiểm tra trùng lịch khi sửa (trừ chính nó)
-                  final isOverlapping = await _taskService.isTimeOverlapping(task.userId, start, end, excludeId: task.id);
-                  if (isOverlapping) {
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Trùng lịch với task khác!"), backgroundColor: Colors.redAccent));
-                    return;
-                  }
-
-                  final updatedTask = Task(
-                    id: task.id,
-                    userId: task.userId,
-                    title: editTitle.text,
-                    description: editDesc.text,
-                    createdAt: task.createdAt,
-                    dueDate: tempDay,
-                    startTime: start,
-                    endTime: end,
-                    isDone: task.isDone,
-                    iconCode: task.iconCode,
-                  );
-                  await _taskService.updateTask(updatedTask);
-                  if (!context.mounted) return;
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text("Lưu"),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   void _showTaskDetail(Task task) {
     showModalBottomSheet(
       context: context,
@@ -814,7 +716,7 @@ class _HomePageState extends State<HomePage> {
           children: [
             Row(
               children: [
-                Icon(task.iconCode != null ? IconData(task.iconCode!, fontFamily: 'MaterialIcons') : _getTaskIcon(task.title), color: kPriority1Color, size: 40),
+                Icon(task.isDone ? Icons.check : (task.iconCode != null ? IconData(task.iconCode!, fontFamily: 'MaterialIcons') : _getTaskIcon(task.title)), color: kPriority1Color, size: 40),
                 const SizedBox(width: 15),
                 Expanded(
                   child: Text(task.title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
@@ -1043,14 +945,14 @@ class _HomePageState extends State<HomePage> {
     Widget iconBox = Transform.rotate(
       angle: 0.785,
       child: Container(
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: kBackgroundColor.withOpacity(0.9),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
         ),
         child: Transform.rotate(
           angle: -0.785,
-          child: Icon(icon, color: color, size: 24),
+          child: Icon(icon, color: color, size: 32),
         ),
       ),
     );
@@ -1075,7 +977,7 @@ class _HomePageState extends State<HomePage> {
             )
           : Row(
               children: [
-                iconBox,
+                Center(child: iconBox),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -1097,7 +999,12 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildTaskItem(Task task) {
-    bool isExpired = !task.isDone && task.endTime != null && DateTime.now().isAfter(task.endTime!);
+    final now = DateTime.now();
+    bool isExpired = !task.isDone && task.endTime != null && now.isAfter(task.endTime!);
+    // 🔥 Chỉ có thể hoàn thành nếu đang trong khoảng thời gian [startTime, endTime]
+    bool canToggle = task.startTime != null && task.endTime != null && 
+                     now.isAfter(task.startTime!) && now.isBefore(task.endTime!);
+    
     Color taskIconColor = task.isDone ? kPriority1Color : (isExpired ? Colors.redAccent : kPriority3Color);
 
     return Opacity(
@@ -1113,7 +1020,18 @@ class _HomePageState extends State<HomePage> {
               Row(
                 children: [
                   GestureDetector(
-                    onTap: isExpired ? null : () => _taskService.toggleDone(task),
+                    onTap: isExpired ? null : () {
+                      if (canToggle || task.isDone) {
+                        _taskService.toggleDone(task);
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Chưa đến giờ thực hiện task này!"),
+                            backgroundColor: Colors.orangeAccent,
+                          ),
+                        );
+                      }
+                    },
                     child: Transform.rotate(
                       angle: 0.785,
                       child: Container(
@@ -1142,7 +1060,7 @@ class _HomePageState extends State<HomePage> {
                           fontSize: 16, 
                           fontWeight: FontWeight.bold, 
                           color: Colors.white,
-                          decoration: (task.isDone || isExpired) ? TextDecoration.lineThrough : null,
+                          decoration: isExpired ? TextDecoration.lineThrough : null,
                         )),
                         const SizedBox(height: 4),
                         Text(
@@ -1159,7 +1077,7 @@ class _HomePageState extends State<HomePage> {
                     color: kCardColor,
                     onSelected: (value) {
                       if (value == 'edit') {
-                        _showEditDialog(task);
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => EditTaskPage(task: task)));
                       } else if (value == 'detail') {
                         _showTaskDetail(task);
                       }

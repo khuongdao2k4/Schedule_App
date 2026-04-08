@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'task_model.dart';
 import 'task_service.dart';
@@ -12,18 +11,23 @@ const kAccentColor = Color(0xFF7DD3FC);
 const kAccentSoft = Color(0xFFC9E8A2);
 const kTextSoft = Color(0xFF94A3B8);
 
-class AddTaskPage extends StatefulWidget {
-  const AddTaskPage({super.key});
+class EditTaskPage extends StatefulWidget {
+  final Task task;
+
+  const EditTaskPage({
+    super.key,
+    required this.task,
+  });
 
   @override
-  State<AddTaskPage> createState() => _AddTaskPageState();
+  State<EditTaskPage> createState() => _EditTaskPageState();
 }
 
-class _AddTaskPageState extends State<AddTaskPage> {
+class _EditTaskPageState extends State<EditTaskPage> {
   final TaskService _taskService = TaskService();
 
-  final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _descController = TextEditingController();
+  late TextEditingController _titleController;
+  late TextEditingController _descController;
 
   DateTime? _selectedDay;
   TimeOfDay? _startTime;
@@ -45,13 +49,62 @@ class _AddTaskPageState extends State<AddTaskPage> {
     Icons.flight,
   ];
 
-  IconData _selectedIcon = Icons.assignment_outlined;
+  late IconData _selectedIcon;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _titleController = TextEditingController(text: widget.task.title);
+    _descController = TextEditingController(text: widget.task.description);
+    _selectedDay = widget.task.dueDate;
+    _startTime = widget.task.startTime != null
+        ? TimeOfDay.fromDateTime(widget.task.startTime!)
+        : null;
+    _endTime = widget.task.endTime != null
+        ? TimeOfDay.fromDateTime(widget.task.endTime!)
+        : null;
+
+    _selectedIcon = _getInitialIcon();
+  }
+
+  IconData _getInitialIcon() {
+    if (widget.task.iconCode != null) {
+      for (final icon in taskIcons) {
+        if (icon.codePoint == widget.task.iconCode) {
+          return icon;
+        }
+      }
+    }
+    return _guessIconFromTitle(widget.task.title);
+  }
+
+  IconData _guessIconFromTitle(String title) {
+    final t = title.toLowerCase();
+
+    if (t.contains('chạy') || t.contains('run') || t.contains('thể dục')) {
+      return Icons.directions_run;
+    }
+    if (t.contains('gym') || t.contains('tập')) return Icons.fitness_center;
+    if (t.contains('học') || t.contains('study') || t.contains('bài')) {
+      return Icons.book;
+    }
+    if (t.contains('ngủ') || t.contains('sleep')) return Icons.bed;
+    if (t.contains('làm') || t.contains('work')) return Icons.work;
+    if (t.contains('ăn') || t.contains('uống')) return Icons.restaurant;
+    if (t.contains('code') || t.contains('lập trình')) return Icons.code;
+    if (t.contains('phim')) return Icons.movie;
+    if (t.contains('mua')) return Icons.shopping_cart;
+    if (t.contains('cafe')) return Icons.local_cafe;
+
+    return taskIcons.isNotEmpty ? taskIcons.first : Icons.assignment_outlined;
+  }
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDay ?? DateTime.now(),
-      firstDate: DateTime.now(),
+      firstDate: DateTime(2000),
       lastDate: DateTime(2100),
     );
 
@@ -85,14 +138,8 @@ class _AddTaskPageState extends State<AddTaskPage> {
   Future<void> _saveTask() async {
     if (_isLoading) return;
 
-    final user = FirebaseAuth.instance.currentUser;
     final title = _titleController.text.trim();
     final description = _descController.text.trim();
-
-    if (user == null) {
-      _showMessage("Không tìm thấy người dùng đăng nhập");
-      return;
-    }
 
     if (title.isEmpty) {
       _showMessage("Vui lòng nhập tiêu đề task");
@@ -104,7 +151,6 @@ class _AddTaskPageState extends State<AddTaskPage> {
       return;
     }
 
-    final now = DateTime.now();
     final start = DateTime(
       _selectedDay!.year,
       _selectedDay!.month,
@@ -121,13 +167,6 @@ class _AddTaskPageState extends State<AddTaskPage> {
       _endTime!.minute,
     );
 
-    // 🔥 Điều kiện 1: Không được tạo thời gian bắt đầu trong quá khứ
-    if (start.isBefore(now)) {
-      _showMessage("Thời gian bắt đầu không được ở trong quá khứ!");
-      return;
-    }
-
-    // 🔥 Điều kiện 2: Giờ kết thúc phải lớn hơn giờ bắt đầu
     if (!end.isAfter(start)) {
       _showMessage("Giờ kết thúc phải lớn hơn giờ bắt đầu");
       return;
@@ -136,44 +175,45 @@ class _AddTaskPageState extends State<AddTaskPage> {
     setState(() => _isLoading = true);
 
     try {
-      // 🔥 Điều kiện 3: Kiểm tra trùng lịch (Overlap)
       final isOverlapping = await _taskService.isTimeOverlapping(
-        user.uid,
+        widget.task.userId,
         start,
         end,
+        excludeId: widget.task.id,
       );
 
       if (isOverlapping) {
-        _showMessage("Thời gian này đã có task khác, vui lòng chọn khung giờ khác!");
+        _showMessage("Thời gian này bị trùng với task khác!");
         setState(() => _isLoading = false);
         return;
       }
 
-      final task = Task(
-        userId: user.uid,
+      final updatedTask = Task(
+        id: widget.task.id,
+        userId: widget.task.userId,
         title: title,
         description: description,
-        createdAt: DateTime.now(),
+        createdAt: widget.task.createdAt,
         dueDate: _selectedDay,
         startTime: start,
         endTime: end,
-        isDone: false,
+        isDone: widget.task.isDone,
         iconCode: _selectedIcon.codePoint,
       );
 
-      await _taskService.addTask(task);
+      await _taskService.updateTask(updatedTask);
 
       if (!mounted) return;
       Navigator.pop(context);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Tạo task thành công"),
+          content: Text("Cập nhật task thành công"),
           backgroundColor: Colors.green,
         ),
       );
     } catch (e) {
-      _showMessage("Có lỗi xảy ra khi tạo task");
+      _showMessage("Có lỗi xảy ra khi cập nhật task");
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -189,6 +229,16 @@ class _AddTaskPageState extends State<AddTaskPage> {
         backgroundColor: Colors.redAccent,
       ),
     );
+  }
+
+  String _formatPreviewDate() {
+    if (_selectedDay == null) return "Chưa chọn ngày";
+    return DateFormat('EEE, dd MMM yyyy').format(_selectedDay!);
+  }
+
+  String _formatPreviewTime() {
+    if (_startTime == null || _endTime == null) return "Chưa chọn thời gian";
+    return "${_startTime!.format(context)} - ${_endTime!.format(context)}";
   }
 
   @override
@@ -225,6 +275,8 @@ class _AddTaskPageState extends State<AddTaskPage> {
                     children: [
                       _buildTopBar(),
                       const SizedBox(height: 22),
+                      _buildPreviewCard(),
+                      const SizedBox(height: 24),
                       _buildSectionLabel("Tiêu đề"),
                       _buildTextField(
                         controller: _titleController,
@@ -316,7 +368,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "Create Task",
+                "Edit Task",
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 22,
@@ -325,7 +377,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
               ),
               SizedBox(height: 2),
               Text(
-                "Tạo công việc mới cho bạn",
+                "Cập nhật lại công việc của bạn",
                 style: TextStyle(
                   color: kTextSoft,
                   fontSize: 13,
@@ -335,6 +387,93 @@ class _AddTaskPageState extends State<AddTaskPage> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildPreviewCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFF162033),
+            const Color(0xFF1B2A40),
+            kGlowColor.withOpacity(0.12),
+          ],
+        ),
+        border: Border.all(
+          color: kGlowColor.withOpacity(0.20),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: kGlowColor.withOpacity(0.12),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 68,
+            height: 68,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: kGlowColor.withOpacity(0.10),
+              border: Border.all(
+                color: kGlowColor.withOpacity(0.45),
+                width: 1,
+              ),
+            ),
+            child: Hero(
+              tag: 'task_icon_${widget.task.id}',
+              transitionOnUserGestures: true,
+              child: Material(
+                color: Colors.transparent,
+                child: Icon(
+                  _selectedIcon,
+                  color: kAccentSoft,
+                  size: 30,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            _titleController.text.trim().isEmpty
+                ? "Tên task"
+                : _titleController.text.trim(),
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            _formatPreviewDate(),
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _formatPreviewTime(),
+            style: const TextStyle(
+              color: kAccentColor,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -377,6 +516,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
       child: TextField(
         controller: controller,
         maxLines: maxLines,
+        onChanged: (_) => setState(() {}),
         style: const TextStyle(
           color: Colors.white,
           fontSize: 15,
@@ -541,7 +681,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
               ),
             )
                 : const Text(
-              "TẠO TASK",
+              "LƯU THAY ĐỔI",
               style: TextStyle(
                 color: Colors.black,
                 fontSize: 16,
