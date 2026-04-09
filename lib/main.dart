@@ -10,6 +10,8 @@ import 'task_service.dart';
 import 'add_task_page.dart';
 import 'my_tasks_page.dart';
 import 'edit_task_page.dart';
+import 'settings_page.dart';
+import 'statistics_page.dart';
 
 // --- Bảng màu chuẩn theo mẫu ---
 const kBackgroundColor = Color(0xFF1B2333); 
@@ -755,31 +757,32 @@ class _HomePageState extends State<HomePage> {
     final now = DateTime.now();
 
     return Scaffold(
+      drawer: const SettingsPage(),
       appBar: AppBar(
         backgroundColor: kBackgroundColor,
         elevation: 0,
-        leading: const Icon(Icons.sort, color: Colors.white),
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.settings_outlined, color: Colors.white),
+            onPressed: () {
+              Scaffold.of(context).openDrawer();
+            },
+          ),
+        ),
         title: const Text("Task Management App", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
         centerTitle: true,
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 15),
-            child: GestureDetector(
-              onTap: () async {
-                await AuthService().signOut();
-                if (!context.mounted) return;
-                Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginPage()));
-              },
-              child: CircleAvatar(
-                radius: 18,
-                backgroundColor: kCardColor,
-                backgroundImage: user?.photoURL != null 
-                    ? NetworkImage(user!.photoURL!) 
-                    : null,
-                child: user?.photoURL == null 
-                    ? const Icon(Icons.person, color: Colors.white, size: 20) 
-                    : null,
-              ),
+            child: CircleAvatar(
+              radius: 18,
+              backgroundColor: kCardColor,
+              backgroundImage: user?.photoURL != null 
+                  ? NetworkImage(user!.photoURL!) 
+                  : null,
+              child: user?.photoURL == null 
+                  ? const Icon(Icons.person, color: Colors.white, size: 20) 
+                  : null,
             ),
           ),
         ],
@@ -909,8 +912,20 @@ class _HomePageState extends State<HomePage> {
                 child: const Icon(Icons.add, color: Colors.black, size: 35),
               ),
             ),
-            IconButton(icon: const Icon(Icons.auto_graph_rounded, color: Colors.grey, size: 28), onPressed: () {}),
-            IconButton(icon: const Icon(Icons.person_outline, color: Colors.grey, size: 28), onPressed: () {}),
+            IconButton(
+              icon: const Icon(Icons.auto_graph_rounded, color: Colors.grey, size: 28), 
+              onPressed: () {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const StatisticsPage()));
+              }
+            ),
+            Builder(
+              builder: (context) => IconButton(
+                icon: const Icon(Icons.person_outline, color: Colors.grey, size: 28), 
+                onPressed: () {
+                  Scaffold.of(context).openDrawer();
+                }
+              ),
+            ),
           ],
         ),
       ),
