@@ -6,11 +6,18 @@ class Task {
   String title;
   String description;
   DateTime createdAt;
-  DateTime? startTime; // Giờ bắt đầu
-  DateTime? endTime;   // Giờ kết thúc
-  DateTime? dueDate;   // Ngày (có thể dùng chung hoặc tách riêng)
+  DateTime? startTime;
+  DateTime? endTime;
+  DateTime? dueDate;
   bool isDone;
   int? iconCode;
+  
+  // Các trường mới để phục vụ thống kê chuyên sâu
+  String priority; // Low, Medium, High
+  String category; // Work, Study, Personal, Health, etc.
+  int estimatedMinutes;
+  int actualMinutes;
+  int rescheduleCount;
 
   Task({
     this.id,
@@ -23,6 +30,11 @@ class Task {
     this.dueDate,
     this.isDone = false,
     this.iconCode,
+    this.priority = 'Medium',
+    this.category = 'Personal',
+    this.estimatedMinutes = 30,
+    this.actualMinutes = 0,
+    this.rescheduleCount = 0,
   }) : createdAt = createdAt ?? DateTime.now();
 
   Map<String, dynamic> toMap() {
@@ -36,6 +48,11 @@ class Task {
       'dueDate': dueDate != null ? Timestamp.fromDate(dueDate!) : null,
       'isDone': isDone,
       'iconCode': iconCode,
+      'priority': priority,
+      'category': category,
+      'estimatedMinutes': estimatedMinutes,
+      'actualMinutes': actualMinutes,
+      'rescheduleCount': rescheduleCount,
     };
   }
 
@@ -51,6 +68,11 @@ class Task {
       dueDate: map['dueDate'] != null ? (map['dueDate'] as Timestamp).toDate() : null,
       isDone: map['isDone'] ?? false,
       iconCode: map['iconCode'],
+      priority: map['priority'] ?? 'Medium',
+      category: map['category'] ?? 'Personal',
+      estimatedMinutes: map['estimatedMinutes'] ?? 30,
+      actualMinutes: map['actualMinutes'] ?? 0,
+      rescheduleCount: map['rescheduleCount'] ?? 0,
     );
   }
 }

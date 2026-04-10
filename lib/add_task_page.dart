@@ -24,11 +24,27 @@ class _AddTaskPageState extends State<AddTaskPage> {
 
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descController = TextEditingController();
+  final TextEditingController _estController = TextEditingController(text: '30');
 
   DateTime? _selectedDay;
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
   bool _isLoading = false;
+
+  String _selectedPriority = 'Medium';
+  String _selectedCategory = 'Personal';
+
+  final List<String> _categories = [
+    'Work', 
+    'Study', 
+    'Personal', 
+    'Health', 
+    'Entertainment', // Vui chơi
+    'Self-Improvement', // Rèn luyện bản thân
+    'Finance', 
+    'Other'
+  ];
+  final List<String> _priorities = ['Low', 'Medium', 'High'];
 
   final List<IconData> taskIcons = [
     Icons.work,
@@ -88,6 +104,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
     final user = FirebaseAuth.instance.currentUser;
     final title = _titleController.text.trim();
     final description = _descController.text.trim();
+    final estMinutes = int.tryParse(_estController.text) ?? 30;
 
     if (user == null) {
       _showMessage("Không tìm thấy người dùng đăng nhập");
@@ -121,13 +138,11 @@ class _AddTaskPageState extends State<AddTaskPage> {
       _endTime!.minute,
     );
 
-    // 🔥 Điều kiện 1: Không được tạo thời gian bắt đầu trong quá khứ
     if (start.isBefore(now)) {
       _showMessage("Thời gian bắt đầu không được ở trong quá khứ!");
       return;
     }
 
-    // 🔥 Điều kiện 2: Giờ kết thúc phải lớn hơn giờ bắt đầu
     if (!end.isAfter(start)) {
       _showMessage("Giờ kết thúc phải lớn hơn giờ bắt đầu");
       return;
@@ -136,7 +151,6 @@ class _AddTaskPageState extends State<AddTaskPage> {
     setState(() => _isLoading = true);
 
     try {
-      // 🔥 Điều kiện 3: Kiểm tra trùng lịch (Overlap)
       final isOverlapping = await _taskService.isTimeOverlapping(
         user.uid,
         start,
@@ -159,6 +173,9 @@ class _AddTaskPageState extends State<AddTaskPage> {
         endTime: end,
         isDone: false,
         iconCode: _selectedIcon.codePoint,
+        priority: _selectedPriority,
+        category: _selectedCategory,
+        estimatedMinutes: estMinutes,
       );
 
       await _taskService.addTask(task);
@@ -195,6 +212,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
   void dispose() {
     _titleController.dispose();
     _descController.dispose();
+    _estController.dispose();
     super.dispose();
   }
 
@@ -238,13 +256,66 @@ class _AddTaskPageState extends State<AddTaskPage> {
                         maxLines: 3,
                       ),
                       const SizedBox(height: 20),
-                      _buildSectionLabel("Ngày"),
-                      _buildPickerTile(
-                        icon: Icons.calendar_today_rounded,
-                        text: _selectedDay == null
-                            ? "Chọn ngày"
-                            : DateFormat('dd/MM/yyyy').format(_selectedDay!),
-                        onTap: _pickDate,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildSectionLabel("Phân loại"),
+                                _buildDropdown(_categories, _selectedCategory, (val) {
+                                  setState(() => _selectedCategory = val!);
+                                }),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildSectionLabel("Độ ưu tiên"),
+                                _buildDropdown(_priorities, _selectedPriority, (val) {
+                                  setState(() => _selectedPriority = val!);
+                                }),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildSectionLabel("Ngày"),
+                                _buildPickerTile(
+                                  icon: Icons.calendar_today_rounded,
+                                  text: _selectedDay == null
+                                      ? "Chọn ngày"
+                                      : DateFormat('dd/MM/yyyy').format(_selectedDay!),
+                                  onTap: _pickDate,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildSectionLabel("Dự kiến (phút)"),
+                                _buildTextField(
+                                  controller: _estController,
+                                  hint: "VD: 30",
+                                  keyboardType: TextInputType.number,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 20),
                       _buildSectionLabel("Thời gian"),
@@ -356,6 +427,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
     required TextEditingController controller,
     required String hint,
     int maxLines = 1,
+    TextInputType keyboardType = TextInputType.text,
   }) {
     return Container(
       width: double.infinity,
@@ -366,17 +438,11 @@ class _AddTaskPageState extends State<AddTaskPage> {
           color: kGlowColor.withOpacity(0.12),
           width: 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.14),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
       ),
       child: TextField(
         controller: controller,
         maxLines: maxLines,
+        keyboardType: keyboardType,
         style: const TextStyle(
           color: Colors.white,
           fontSize: 15,
@@ -391,6 +457,33 @@ class _AddTaskPageState extends State<AddTaskPage> {
             horizontal: 16,
             vertical: 17,
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDropdown(List<String> items, String selected, Function(String?) onChanged) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: kInputColor,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: kGlowColor.withOpacity(0.12)),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: selected,
+          dropdownColor: kCardColor,
+          icon: const Icon(Icons.arrow_drop_down, color: kGlowColor),
+          style: const TextStyle(color: Colors.white, fontSize: 14.5),
+          isExpanded: true,
+          items: items.map((String value) {
+            return DropdownMenuItem<String>(
+              value: value,
+              child: Text(value),
+            );
+          }).toList(),
+          onChanged: onChanged,
         ),
       ),
     );
@@ -413,13 +506,6 @@ class _AddTaskPageState extends State<AddTaskPage> {
             color: kGlowColor.withOpacity(0.12),
             width: 1,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.14),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
-            ),
-          ],
         ),
         child: Row(
           children: [
@@ -476,15 +562,6 @@ class _AddTaskPageState extends State<AddTaskPage> {
                       : Colors.white.withOpacity(0.08),
                   width: isSelected ? 1.2 : 1,
                 ),
-                boxShadow: isSelected
-                    ? [
-                  BoxShadow(
-                    color: kGlowColor.withOpacity(0.16),
-                    blurRadius: 12,
-                    spreadRadius: 1,
-                  ),
-                ]
-                    : null,
               ),
               child: Icon(
                 icon,
@@ -513,13 +590,6 @@ class _AddTaskPageState extends State<AddTaskPage> {
                 kAccentColor.withOpacity(0.88),
               ],
             ),
-            boxShadow: [
-              BoxShadow(
-                color: kGlowColor.withOpacity(0.24),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
-              ),
-            ],
           ),
           child: ElevatedButton(
             onPressed: _isLoading ? null : _saveTask,

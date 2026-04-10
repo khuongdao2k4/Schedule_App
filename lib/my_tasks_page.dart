@@ -5,7 +5,8 @@ import 'task_model.dart';
 import 'task_service.dart';
 import 'edit_task_page.dart';
 import 'statistics_page.dart';
-import 'settings_page.dart'; // 🔥 Import trang cài đặt
+import 'settings_page.dart';
+import 'add_task_page.dart';
 
 const kBackgroundColor = Color(0xFF1B2333);
 const kCardColor = Color(0xFF263042);
@@ -31,7 +32,7 @@ class _MyTasksPageState extends State<MyTasksPage> {
   void initState() {
     super.initState();
     _pageController = PageController(
-      viewportFraction: 0.22,
+      viewportFraction: 0.23, // Điều chỉnh để các thẻ ngày gần nhau hơn
       initialPage: initialPage,
     );
   }
@@ -44,18 +45,12 @@ class _MyTasksPageState extends State<MyTasksPage> {
 
   IconData _getTaskIcon(String title) {
     final t = title.toLowerCase();
-    if (t.contains('chạy') || t.contains('run') || t.contains('thể dục')) {
-      return Icons.directions_run;
-    }
+    if (t.contains('chạy') || t.contains('run') || t.contains('thể dục')) return Icons.directions_run;
     if (t.contains('gym') || t.contains('tập')) return Icons.fitness_center;
-    if (t.contains('học') || t.contains('bài') || t.contains('study')) {
-      return Icons.book;
-    }
+    if (t.contains('học') || t.contains('bài') || t.contains('study')) return Icons.book;
     if (t.contains('ngủ') || t.contains('sleep')) return Icons.bed;
     if (t.contains('làm') || t.contains('work')) return Icons.work;
-    if (t.contains('ăn') || t.contains('uống') || t.contains('eat')) {
-      return Icons.restaurant;
-    }
+    if (t.contains('ăn') || t.contains('uống') || t.contains('eat')) return Icons.restaurant;
     if (t.contains('code') || t.contains('lập trình')) return Icons.code;
     if (t.contains('phim') || t.contains('movie')) return Icons.movie;
     if (t.contains('mua') || t.contains('shop')) return Icons.shopping_cart;
@@ -68,9 +63,7 @@ class _MyTasksPageState extends State<MyTasksPage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: kCardColor,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text("Xác nhận xóa"),
         content: Text("Bạn có chắc chắn muốn xóa task \"${task.title}\" không?"),
         actions: [
@@ -130,25 +123,14 @@ class _MyTasksPageState extends State<MyTasksPage> {
 
     return Scaffold(
       backgroundColor: kBackgroundColor,
-      // ✅ Thêm Drawer vào trang này để có thể mở từ bất cứ đâu
       drawer: const SettingsPage(),
       appBar: AppBar(
         backgroundColor: kBackgroundColor,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => Navigator.pop(context)),
         title: const Text("My Tasks", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         centerTitle: true,
-        actions: [
-          Builder(
-            builder: (context) => IconButton(
-              icon: const Icon(Icons.settings_outlined, color: Colors.white),
-              onPressed: () => Scaffold.of(context).openDrawer(), // 🔥 Mở Cài đặt
-            ),
-          ),
-        ],
+        actions: [Builder(builder: (context) => IconButton(icon: const Icon(Icons.settings_outlined, color: Colors.white), onPressed: () => Scaffold.of(context).openDrawer()))],
       ),
       body: Column(
         children: [
@@ -174,10 +156,7 @@ class _MyTasksPageState extends State<MyTasksPage> {
 
                       if (filteredTasks.isEmpty) return const Center(child: Text("No tasks for this day", style: TextStyle(color: Colors.grey)));
 
-                      filteredTasks.sort((a, b) {
-                        if (a.startTime == null || b.startTime == null) return 0;
-                        return a.startTime!.compareTo(b.startTime!);
-                      });
+                      filteredTasks.sort((a, b) => (a.startTime ?? DateTime.now()).compareTo(b.startTime ?? DateTime.now()));
 
                       return ListView.builder(
                         itemCount: filteredTasks.length,
@@ -196,29 +175,18 @@ class _MyTasksPageState extends State<MyTasksPage> {
       bottomNavigationBar: Container(
         margin: const EdgeInsets.fromLTRB(20, 0, 20, 30),
         height: 80,
-        decoration: BoxDecoration(
-          color: kNavbarColor,
-          borderRadius: BorderRadius.circular(40),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 5))],
-        ),
+        decoration: BoxDecoration(color: kNavbarColor, borderRadius: BorderRadius.circular(40), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 5))]),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             IconButton(icon: const Icon(Icons.home_filled, color: Colors.grey, size: 28), onPressed: () => Navigator.pop(context)),
             IconButton(icon: const Icon(Icons.fact_check_outlined, color: kPriority1Color, size: 28), onPressed: () {}),
-            const SizedBox(width: 40),
-            IconButton(
-              icon: const Icon(Icons.auto_graph_rounded, color: Colors.grey, size: 28), 
-              onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const StatisticsPage())); // 🔥 Mở Thống kê
-              }
+            GestureDetector(
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AddTaskPage())),
+              child: Container(width: 55, height: 55, decoration: const BoxDecoration(color: kPriority1Color, shape: BoxShape.circle), child: const Icon(Icons.add, color: Colors.black, size: 35)),
             ),
-            Builder(
-              builder: (context) => IconButton(
-                icon: const Icon(Icons.person_outline, color: Colors.grey, size: 28), 
-                onPressed: () => Scaffold.of(context).openDrawer(), // 🔥 Mở Cài đặt từ icon profile
-              ),
-            ),
+            IconButton(icon: const Icon(Icons.auto_graph_rounded, color: Colors.grey, size: 28), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StatisticsPage()))),
+            Builder(builder: (context) => IconButton(icon: const Icon(Icons.person_outline, color: Colors.grey, size: 28), onPressed: () => Scaffold.of(context).openDrawer())),
           ],
         ),
       ),
@@ -268,7 +236,7 @@ class _MyTasksPageState extends State<MyTasksPage> {
               double diff = page - index;
               double scale = (1 - (diff.abs() * 0.22)).clamp(0.0, 1.0);
               double yOffset = diff.abs() * diff.abs() * 10;
-              double xOffset = diff * 12;
+              double xOffset = diff * 15; // Tăng nhẹ xOffset để kéo các thẻ ở rìa vào gần tâm hơn
               return Center(
                 child: GestureDetector(
                   onTap: () => _pageController.animateToPage(index, duration: const Duration(milliseconds: 500), curve: Curves.easeInOut),
@@ -279,13 +247,13 @@ class _MyTasksPageState extends State<MyTasksPage> {
                       child: Opacity(
                         opacity: (scale * 2.5 - 1.5).clamp(0.3, 1.0),
                         child: Container(
-                          width: 75, height: 100,
-                          decoration: BoxDecoration(color: isSelected ? kPriority1Color : const Color(0xFF2D394D), borderRadius: BorderRadius.circular(40)),
+                          width: 70, height: 95,
+                          decoration: BoxDecoration(color: isSelected ? kPriority1Color : const Color(0xFF2D394D), borderRadius: BorderRadius.circular(35)),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text(date.day.toString(), style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: isSelected ? Colors.black : Colors.white)),
-                              Text(DateFormat('E').format(date), style: TextStyle(fontSize: 14, color: isSelected ? Colors.black54 : Colors.white38)),
+                              Text(date.day.toString(), style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: isSelected ? Colors.black : Colors.white)),
+                              Text(DateFormat('E').format(date), style: TextStyle(fontSize: 13, color: isSelected ? Colors.black54 : Colors.white38)),
                             ],
                           ),
                         ),
@@ -304,12 +272,10 @@ class _MyTasksPageState extends State<MyTasksPage> {
   Widget _buildTimelineTaskItem(Task task, int index) {
     final now = DateTime.now();
     Color cardColor = index % 3 == 0 ? kPriority1Color : (index % 3 == 1 ? kPriority2Color : kPriority3Color);
-    String startTimeStr = task.startTime != null ? DateFormat('hh:mm a').format(task.startTime!) : "10:00 am";
-    String endTimeStr = task.endTime != null ? DateFormat('hh:mm a').format(task.endTime!) : "02:00 pm";
+    String start = task.startTime != null ? DateFormat('hh:mm a').format(task.startTime!) : "10:00 am";
+    String end = task.endTime != null ? DateFormat('hh:mm a').format(task.endTime!) : "02:00 pm";
     bool isExpired = !task.isDone && task.endTime != null && now.isAfter(task.endTime!);
-    bool canToggle = task.startTime != null && task.endTime != null && now.isAfter(task.startTime!) && now.isBefore(task.endTime!);
     String status = task.isDone ? "Completed" : (isExpired ? "Expired" : "Running");
-    double progress = task.isDone ? 1.0 : 0.0;
     Color statusColor = isExpired ? Colors.red.shade900 : Colors.black;
     Color currentCardColor = isExpired ? cardColor.withOpacity(0.4) : cardColor;
     final IconData displayIcon = task.isDone ? Icons.check : (task.iconCode != null ? IconData(task.iconCode!, fontFamily: 'MaterialIcons') : _getTaskIcon(task.title));
@@ -320,7 +286,7 @@ class _MyTasksPageState extends State<MyTasksPage> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(width: 75, child: Column(children: [Text(startTimeStr.toLowerCase(), style: TextStyle(color: isExpired ? Colors.white24 : Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)), const SizedBox(height: 5), Expanded(child: CustomPaint(painter: DashedLinePainter())), const SizedBox(height: 5), Text(endTimeStr.toLowerCase(), style: TextStyle(color: isExpired ? Colors.white24 : Colors.white70, fontSize: 12, fontWeight: FontWeight.bold))])),
+            SizedBox(width: 75, child: Column(children: [Text(start.toLowerCase(), style: TextStyle(color: isExpired ? Colors.white24 : Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)), const SizedBox(height: 5), Expanded(child: CustomPaint(painter: DashedLinePainter())), const SizedBox(height: 5), Text(end.toLowerCase(), style: TextStyle(color: isExpired ? Colors.white24 : Colors.white70, fontSize: 12, fontWeight: FontWeight.bold))])),
             const SizedBox(width: 5),
             Expanded(
               child: Stack(
@@ -330,10 +296,10 @@ class _MyTasksPageState extends State<MyTasksPage> {
                     clipper: MyTaskCardClipper(),
                     child: Container(
                       width: double.infinity, padding: const EdgeInsets.fromLTRB(20, 60, 15, 20),
-                      decoration: BoxDecoration(color: currentCardColor, border: isExpired ? Border.all(color: Colors.red.withOpacity(0.3), width: 1) : null),
+                      decoration: BoxDecoration(color: currentCardColor),
                       child: Row(
                         children: [
-                          Transform.rotate(angle: 0.785, child: Container(width: 48, height: 48, decoration: BoxDecoration(color: const Color(0xFF1B2333), borderRadius: BorderRadius.circular(14)), child: Transform.rotate(angle: -0.785, child: Center(child: Hero(tag: 'task_icon_${task.id}', transitionOnUserGestures: true, child: Material(color: Colors.transparent, child: Icon(displayIcon, color: isExpired ? Colors.red.withOpacity(0.5) : cardColor, size: 26))))))),
+                          Transform.rotate(angle: 0.785, child: Container(width: 48, height: 48, decoration: BoxDecoration(color: const Color(0xFF1B2333), borderRadius: BorderRadius.circular(14)), child: Transform.rotate(angle: -0.785, child: Center(child: Icon(displayIcon, color: isExpired ? Colors.red.withOpacity(0.5) : cardColor, size: 26))))),
                           const SizedBox(width: 20),
                           Expanded(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [Text(task.title, style: TextStyle(color: isExpired ? Colors.black54 : Colors.black, fontSize: 20, fontWeight: FontWeight.bold, decoration: isExpired ? TextDecoration.lineThrough : null)), const SizedBox(height: 4), Text(task.description.isEmpty ? "Client project" : task.description, style: TextStyle(color: isExpired ? Colors.black38 : Colors.black.withOpacity(0.6), fontSize: 14, fontWeight: FontWeight.w500))])),
                           PopupMenuButton<String>(
@@ -351,7 +317,7 @@ class _MyTasksPageState extends State<MyTasksPage> {
                     ),
                   ),
                   Positioned(top: 15, left: 15, child: Text(status, style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.bold))),
-                  Positioned(top: 15, left: 130, right: 15, child: Row(children: [_buildAvatarGroup(isExpired), const Spacer(), _buildProgressBar(progress, isExpired)])),
+                  Positioned(top: 15, left: 130, right: 15, child: Row(children: [_buildAvatarGroup(isExpired), const Spacer(), _buildProgressBar(task.isDone ? 1.0 : 0.0, isExpired)])),
                 ],
               ),
             ),
@@ -362,8 +328,7 @@ class _MyTasksPageState extends State<MyTasksPage> {
   }
 
   Widget _buildAvatarGroup(bool isExpired) {
-    double opacity = isExpired ? 0.3 : 1.0;
-    return Opacity(opacity: opacity, child: SizedBox(height: 30, width: 90, child: Stack(children: [_buildSingleAvatar(0, Colors.blueGrey), _buildSingleAvatar(18, Colors.brown), _buildSingleAvatar(36, Colors.blue), Positioned(left: 54, child: Container(width: 28, height: 28, decoration: BoxDecoration(color: const Color(0xFF263042), shape: BoxShape.circle, border: Border.all(color: const Color(0xFF161D2B), width: 2)), child: const Icon(Icons.add, size: 14, color: Colors.white)))])));
+    return Opacity(opacity: isExpired ? 0.3 : 1.0, child: SizedBox(height: 30, width: 90, child: Stack(children: [_buildSingleAvatar(0, Colors.blueGrey), _buildSingleAvatar(18, Colors.brown), _buildSingleAvatar(36, Colors.blue), Positioned(left: 54, child: Container(width: 28, height: 28, decoration: BoxDecoration(color: const Color(0xFF263042), shape: BoxShape.circle, border: Border.all(color: const Color(0xFF161D2B), width: 2)), child: const Icon(Icons.add, size: 14, color: Colors.white)))])));
   }
 
   Widget _buildSingleAvatar(double left, Color color) {
