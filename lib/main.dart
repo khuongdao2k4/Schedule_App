@@ -12,6 +12,8 @@ import 'my_tasks_page.dart';
 import 'edit_task_page.dart';
 import 'settings_page.dart';
 import 'statistics_page.dart';
+import 'profile_page.dart';
+import 'task_icons.dart';
 
 // --- Bảng màu chuẩn theo mẫu ---
 const kBackgroundColor = Color(0xFF1B2333); 
@@ -664,21 +666,6 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final TaskService _taskService = TaskService();
 
-  IconData _getTaskIcon(String title) {
-    final t = title.toLowerCase();
-    if (t.contains('chạy') || t.contains('run') || t.contains('thể dục')) return Icons.directions_run;
-    if (t.contains('gym') || t.contains('tập')) return Icons.fitness_center;
-    if (t.contains('học') || t.contains('bài') || t.contains('study')) return Icons.book;
-    if (t.contains('ngủ') || t.contains('sleep')) return Icons.bed;
-    if (t.contains('làm') || t.contains('work')) return Icons.work;
-    if (t.contains('ăn') || t.contains('uống') || t.contains('eat')) return Icons.restaurant;
-    if (t.contains('code') || t.contains('lập trình')) return Icons.code;
-    if (t.contains('phim') || t.contains('movie')) return Icons.movie;
-    if (t.contains('mua') || t.contains('shop')) return Icons.shopping_cart;
-    if (t.contains('cafe')) return Icons.local_cafe;
-    return Icons.assignment_outlined;
-  }
-
   void _confirmDelete(Task task) {
     showDialog(
       context: context,
@@ -718,7 +705,7 @@ class _HomePageState extends State<HomePage> {
           children: [
             Row(
               children: [
-                Icon(task.isDone ? Icons.check : (task.iconCode != null ? IconData(task.iconCode!, fontFamily: 'MaterialIcons') : _getTaskIcon(task.title)), color: kPriority1Color, size: 40),
+                Icon(task.isDone ? Icons.check : (task.iconCode != null ? IconData(task.iconCode!, fontFamily: 'MaterialIcons') : TaskIcons.getIconByTitle(task.title)), color: kPriority1Color, size: 40),
                 const SizedBox(width: 15),
                 Expanded(
                   child: Text(task.title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
@@ -774,15 +761,20 @@ class _HomePageState extends State<HomePage> {
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 15),
-            child: CircleAvatar(
-              radius: 18,
-              backgroundColor: kCardColor,
-              backgroundImage: user?.photoURL != null 
-                  ? NetworkImage(user!.photoURL!) 
-                  : null,
-              child: user?.photoURL == null 
-                  ? const Icon(Icons.person, color: Colors.white, size: 20) 
-                  : null,
+            child: GestureDetector(
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfilePage()));
+              },
+              child: CircleAvatar(
+                radius: 18,
+                backgroundColor: kCardColor,
+                backgroundImage: user?.photoURL != null 
+                    ? NetworkImage(user!.photoURL!) 
+                    : null,
+                child: user?.photoURL == null 
+                    ? const Icon(Icons.person, color: Colors.white, size: 20) 
+                    : null,
+              ),
             ),
           ),
         ],
@@ -918,13 +910,11 @@ class _HomePageState extends State<HomePage> {
                 Navigator.push(context, MaterialPageRoute(builder: (_) => const StatisticsPage()));
               }
             ),
-            Builder(
-              builder: (context) => IconButton(
-                icon: const Icon(Icons.person_outline, color: Colors.grey, size: 28), 
-                onPressed: () {
-                  Scaffold.of(context).openDrawer();
-                }
-              ),
+            IconButton(
+              icon: const Icon(Icons.person_outline, color: Colors.grey, size: 28), 
+              onPressed: () {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfilePage()));
+              }
             ),
           ],
         ),
@@ -1021,6 +1011,7 @@ class _HomePageState extends State<HomePage> {
                      now.isAfter(task.startTime!) && now.isBefore(task.endTime!);
     
     Color taskIconColor = task.isDone ? kPriority1Color : (isExpired ? Colors.redAccent : kPriority3Color);
+    final IconData displayIcon = task.isDone ? Icons.check : (task.iconCode != null ? IconData(task.iconCode!, fontFamily: 'MaterialIcons') : TaskIcons.getIconByTitle(task.title));
 
     return Opacity(
       opacity: isExpired ? 0.5 : 1.0,
@@ -1058,7 +1049,7 @@ class _HomePageState extends State<HomePage> {
                         child: Transform.rotate(
                           angle: -0.785,
                           child: Icon(
-                            task.isDone ? Icons.check : (task.iconCode != null ? IconData(task.iconCode!, fontFamily: 'MaterialIcons') : _getTaskIcon(task.title)), 
+                            displayIcon,
                             color: taskIconColor, 
                             size: 22
                           ),

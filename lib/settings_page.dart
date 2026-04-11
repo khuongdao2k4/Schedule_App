@@ -1,91 +1,25 @@
 import 'package:flutter/material.dart';
 import 'auth_service.dart';
 import 'main.dart';
+import 'about_page.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
-  void _showAbout(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: kCardColor,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
-          title: const Row(
-            children: [
-              Icon(Icons.info_outline, color: kPriority2Color),
-              SizedBox(width: 10),
-              Text(
-                "About",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          content: const Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Task Management App",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              SizedBox(height: 12),
-              Text(
-                "Version 1.0.0",
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontSize: 14,
-                ),
-              ),
-              SizedBox(height: 16),
-              Text(
-                "Ứng dụng giúp bạn quản lý công việc hằng ngày, theo dõi tiến độ và xây dựng kế hoạch cá nhân một cách trực quan.",
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 14,
-                  height: 1.5,
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                "Đóng",
-                style: TextStyle(
-                  color: kPriority1Color,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   Future<void> _handleLogout(BuildContext context) async {
     try {
       await AuthService().signOut();
+
       if (!context.mounted) return;
+
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const LoginPage()),
-        (route) => false,
+            (route) => false,
       );
     } catch (e) {
       if (!context.mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Đăng xuất thất bại: $e'),
@@ -240,8 +174,8 @@ class SettingsPage extends StatelessWidget {
       width: MediaQuery.of(context).size.width * 0.85,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.only(
-          topRight: Radius.circular(30),
-          bottomRight: Radius.circular(30),
+          topLeft: Radius.circular(30),
+          bottomLeft: Radius.circular(30),
         ),
       ),
       child: SafeArea(
@@ -283,7 +217,12 @@ class SettingsPage extends StatelessWidget {
                 iconColor: kPriority2Color,
                 title: "About",
                 subtitle: "Thông tin về ứng dụng và phiên bản hiện tại",
-                onTap: () => _showAbout(context),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AboutPage()),
+                  );
+                },
               ),
               _buildSettingCard(
                 icon: Icons.logout_rounded,
