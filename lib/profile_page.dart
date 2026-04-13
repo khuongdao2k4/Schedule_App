@@ -5,11 +5,7 @@ import 'task_service.dart';
 import 'task_model.dart';
 import 'auth_service.dart';
 import 'activity_history_page.dart';
-
-const kBackgroundColor = Color(0xFF1B2333);
-const kCardColor = Color(0xFF263042);
-const kAccentColor = Color(0xFFC9E8A2);
-const kTextSoft = Color(0xFF94A3B8);
+import 'account_settings_page.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -25,17 +21,17 @@ class ProfilePage extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
     final TaskService taskService = TaskService();
+    final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: kBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new, color: theme.brightness == Brightness.dark ? Colors.white : Colors.black, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text("Hồ sơ cá nhân", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        title: const Text("Hồ sơ cá nhân", style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
@@ -44,7 +40,7 @@ class ProfilePage extends StatelessWidget {
           children: [
             const SizedBox(height: 20),
             // --- Header: Avatar & Rank ---
-            _buildHeader(user, taskService),
+            _buildHeader(context, user, taskService),
             const SizedBox(height: 30),
 
             // --- Stats Row ---
@@ -53,7 +49,7 @@ class ProfilePage extends StatelessWidget {
               builder: (context, snapshot) {
                 final tasks = snapshot.data ?? [];
                 final done = tasks.where((t) => t.isDone).length;
-                return _buildStatsRow(tasks.length, done);
+                return _buildStatsRow(context, tasks.length, done);
               },
             ),
             const SizedBox(height: 35),
@@ -64,7 +60,7 @@ class ProfilePage extends StatelessWidget {
             const SizedBox(height: 40),
             Text(
               "Tham gia từ: ${user?.metadata.creationTime != null ? DateFormat('dd/MM/yyyy').format(user!.metadata.creationTime!) : '--/--/----'}",
-              style: const TextStyle(color: kTextSoft, fontSize: 13),
+              style: const TextStyle(color: Colors.grey, fontSize: 13),
             ),
             const SizedBox(height: 20),
           ],
@@ -73,7 +69,8 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(User? user, TaskService taskService) {
+  Widget _buildHeader(BuildContext context, User? user, TaskService taskService) {
+    final accentColor = Theme.of(context).primaryColor;
     return StreamBuilder<List<Task>>(
       stream: taskService.getTasks(user?.uid ?? ''),
       builder: (context, snapshot) {
@@ -84,31 +81,31 @@ class ProfilePage extends StatelessWidget {
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: kAccentColor, width: 2.5),
+                border: Border.all(color: accentColor, width: 2.5),
               ),
               child: CircleAvatar(
                 radius: 55,
-                backgroundColor: kCardColor,
+                backgroundColor: Theme.of(context).cardColor,
                 backgroundImage: user?.photoURL != null ? NetworkImage(user!.photoURL!) : null,
-                child: user?.photoURL == null ? const Icon(Icons.person, size: 50, color: kAccentColor) : null,
+                child: user?.photoURL == null ? Icon(Icons.person, size: 50, color: accentColor) : null,
               ),
             ),
             const SizedBox(height: 16),
             Text(
               user?.displayName ?? "Người dùng",
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 6),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
-                color: kAccentColor.withOpacity(0.15),
+                color: accentColor.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: kAccentColor.withOpacity(0.3)),
+                border: Border.all(color: accentColor.withOpacity(0.3)),
               ),
               child: Text(
                 _getUserRank(completed),
-                style: const TextStyle(color: kAccentColor, fontSize: 12, fontWeight: FontWeight.w600),
+                style: TextStyle(color: accentColor, fontSize: 12, fontWeight: FontWeight.w600),
               ),
             ),
           ],
@@ -117,33 +114,33 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _buildStatsRow(int total, int done) {
+  Widget _buildStatsRow(BuildContext context, int total, int done) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: kCardColor,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: Colors.white.withOpacity(0.05)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _statItem("Tổng số việc", total.toString()),
+          _statItem(context, "Tổng số việc", total.toString()),
           _verticalDivider(),
-          _statItem("Đã hoàn thành", done.toString()),
+          _statItem(context, "Đã hoàn thành", done.toString()),
           _verticalDivider(),
-          _statItem("Hiệu suất", total == 0 ? "0%" : "${((done / total) * 100).toInt()}%"),
+          _statItem(context, "Hiệu suất", total == 0 ? "0%" : "${((done / total) * 100).toInt()}%"),
         ],
       ),
     );
   }
 
-  Widget _statItem(String label, String value) {
+  Widget _statItem(BuildContext context, String label, String value) {
     return Column(
       children: [
-        Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+        Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
         const SizedBox(height: 4),
-        Text(label, style: const TextStyle(fontSize: 11, color: kTextSoft)),
+        Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
       ],
     );
   }
@@ -153,18 +150,20 @@ class ProfilePage extends StatelessWidget {
   Widget _buildMenuCard(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: kCardColor,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(24),
       ),
       child: Column(
         children: [
-          _menuTile(Icons.history_rounded, "Lịch sử hoạt động", () {
+          _menuTile(context, Icons.history_rounded, "Lịch sử hoạt động", () {
             Navigator.push(context, MaterialPageRoute(builder: (_) => const ActivityHistoryPage()));
           }),
           _divider(),
-          _menuTile(Icons.settings_outlined, "Cài đặt tài khoản", () {}),
+          _menuTile(context, Icons.settings_outlined, "Cài đặt tài khoản", () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const AccountSettingsPage()));
+          }),
           _divider(),
-          _menuTile(Icons.logout_rounded, "Đăng xuất", () async {
+          _menuTile(context, Icons.logout_rounded, "Đăng xuất", () async {
             await AuthService().signOut();
             if (context.mounted) {
               Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
@@ -175,7 +174,8 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _menuTile(IconData icon, String title, VoidCallback onTap, {bool isDanger = false}) {
+  Widget _menuTile(BuildContext context, IconData icon, String title, VoidCallback onTap, {bool isDanger = false}) {
+    final accentColor = Theme.of(context).primaryColor;
     return ListTile(
       leading: Container(
         padding: const EdgeInsets.all(8),
@@ -183,10 +183,10 @@ class ProfilePage extends StatelessWidget {
           color: isDanger ? Colors.redAccent.withOpacity(0.1) : Colors.white.withOpacity(0.05),
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Icon(icon, color: isDanger ? Colors.redAccent : kAccentColor, size: 20),
+        child: Icon(icon, color: isDanger ? Colors.redAccent : accentColor, size: 20),
       ),
-      title: Text(title, style: TextStyle(color: isDanger ? Colors.redAccent : Colors.white, fontSize: 15, fontWeight: FontWeight.w500)),
-      trailing: const Icon(Icons.chevron_right, color: Colors.white24, size: 18),
+      title: Text(title, style: TextStyle(color: isDanger ? Colors.redAccent : null, fontSize: 15, fontWeight: FontWeight.w500)),
+      trailing: const Icon(Icons.chevron_right, color: Colors.grey, size: 18),
       onTap: onTap,
     );
   }

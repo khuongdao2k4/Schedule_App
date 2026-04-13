@@ -1,23 +1,21 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Task {
-  String? id;
-  String userId;
-  String title;
-  String description;
-  DateTime createdAt;
-  DateTime? startTime;
-  DateTime? endTime;
-  DateTime? dueDate;
-  bool isDone;
-  int? iconCode;
-  
-  // Các trường mới để phục vụ thống kê chuyên sâu
-  String priority; // Low, Medium, High
-  String category; // Work, Study, Personal, Health, etc.
-  int estimatedMinutes;
-  int actualMinutes;
-  int rescheduleCount;
+  final String? id;
+  final String userId;
+  final String title;
+  final String description;
+  final DateTime createdAt;
+  final DateTime? startTime;
+  final DateTime? endTime;
+  final DateTime? dueDate;
+  final bool isDone;
+  final int? iconCode;
+  final String priority;
+  final String category;
+  final int estimatedMinutes;
+  final int actualMinutes;
+  final int rescheduleCount;
 
   Task({
     this.id,
@@ -36,6 +34,42 @@ class Task {
     this.actualMinutes = 0,
     this.rescheduleCount = 0,
   }) : createdAt = createdAt ?? DateTime.now();
+
+  Task copyWith({
+    String? id,
+    String? userId,
+    String? title,
+    String? description,
+    DateTime? createdAt,
+    DateTime? startTime,
+    DateTime? endTime,
+    DateTime? dueDate,
+    bool? isDone,
+    int? iconCode,
+    String? priority,
+    String? category,
+    int? estimatedMinutes,
+    int? actualMinutes,
+    int? rescheduleCount,
+  }) {
+    return Task(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      createdAt: createdAt ?? this.createdAt,
+      startTime: startTime ?? this.startTime,
+      endTime: endTime ?? this.endTime,
+      dueDate: dueDate ?? this.dueDate,
+      isDone: isDone ?? this.isDone,
+      iconCode: iconCode ?? this.iconCode,
+      priority: priority ?? this.priority,
+      category: category ?? this.category,
+      estimatedMinutes: estimatedMinutes ?? this.estimatedMinutes,
+      actualMinutes: actualMinutes ?? this.actualMinutes,
+      rescheduleCount: rescheduleCount ?? this.rescheduleCount,
+    );
+  }
 
   Map<String, dynamic> toMap() {
     return {

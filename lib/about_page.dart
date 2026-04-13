@@ -27,7 +27,8 @@ class AboutPage extends StatelessWidget {
     },
   ];
 
-  Widget _buildMemberItem(Map<String, String> member) {
+  Widget _buildMemberItem(BuildContext context, Map<String, String> member) {
+    final theme = Theme.of(context);
     return SizedBox(
       width: 96,
       child: Column(
@@ -50,7 +51,7 @@ class AboutPage extends StatelessWidget {
             ),
             child: CircleAvatar(
               radius: 34,
-              backgroundColor: kCardColor,
+              backgroundColor: theme.cardColor,
               backgroundImage: AssetImage(member['image']!),
             ),
           ),
@@ -63,8 +64,8 @@ class AboutPage extends StatelessWidget {
                 member['name']!,
                 textAlign: TextAlign.center,
                 maxLines: 1,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: theme.brightness == Brightness.dark ? Colors.white : Colors.black,
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                 ),
@@ -76,15 +77,16 @@ class AboutPage extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionCard({
+  Widget _buildSectionCard(BuildContext context, {
     required Widget child,
     EdgeInsetsGeometry padding = const EdgeInsets.all(20),
   }) {
+    final theme = Theme.of(context);
     return Container(
       width: double.infinity,
       padding: padding,
       decoration: BoxDecoration(
-        color: kCardColor,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: Colors.white.withOpacity(0.06)),
         boxShadow: [
@@ -101,17 +103,19 @@ class AboutPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: kBackgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: kBackgroundColor,
+        backgroundColor: theme.scaffoldBackgroundColor,
         elevation: 0,
         centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text(
+        iconTheme: IconThemeData(color: isDark ? Colors.white : Colors.black),
+        title: Text(
           'About',
           style: TextStyle(
-            color: Colors.white,
+            color: isDark ? Colors.white : Colors.black,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -123,17 +127,18 @@ class AboutPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildSectionCard(
+                context,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Row(
+                    Row(
                       children: [
-                        Icon(Icons.groups_rounded, color: kPriority2Color),
-                        SizedBox(width: 10),
+                        const Icon(Icons.groups_rounded, color: kPriority2Color),
+                        const SizedBox(width: 10),
                         Text(
                           'Nhóm phát triển',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: isDark ? Colors.white : Colors.black,
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
@@ -146,9 +151,9 @@ class AboutPage extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _buildMemberItem(_members[0]),
-                        _buildMemberItem(_members[1]),
-                        _buildMemberItem(_members[2]),
+                        _buildMemberItem(context, _members[0]),
+                        _buildMemberItem(context, _members[1]),
+                        _buildMemberItem(context, _members[2]),
                       ],
                     ),
 
@@ -158,9 +163,9 @@ class AboutPage extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        _buildMemberItem(_members[3]),
+                        _buildMemberItem(context, _members[3]),
                         const SizedBox(width: 28),
-                        _buildMemberItem(_members[4]),
+                        _buildMemberItem(context, _members[4]),
                       ],
                     ),
                   ],
@@ -168,44 +173,45 @@ class AboutPage extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               _buildSectionCard(
-                child: const Column(
+                context,
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.info_outline_rounded, color: kPriority1Color),
-                        SizedBox(width: 10),
+                        const Icon(Icons.info_outline_rounded, color: kPriority1Color),
+                        const SizedBox(width: 10),
                         Text(
                           'Giới thiệu ứng dụng',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: isDark ? Colors.white : Colors.black,
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ],
                     ),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     Text(
                       'Task Management App là ứng dụng hỗ trợ quản lý công việc cá nhân hằng ngày một cách trực quan và dễ sử dụng.',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: isDark ? Colors.white : Colors.black,
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         height: 1.45,
                       ),
                     ),
-                    SizedBox(height: 10),
+                    const SizedBox(height: 10),
                     Text(
                       'Ứng dụng cho phép người dùng tạo task, chỉnh sửa nội dung, theo dõi tiến độ và sắp xếp công việc theo mức độ ưu tiên. Với giao diện tối hiện đại, người dùng có thể tập trung hơn vào kế hoạch cá nhân và nâng cao hiệu suất học tập hoặc làm việc.',
                       style: TextStyle(
-                        color: Colors.white70,
+                        color: isDark ? Colors.white70 : Colors.black87,
                         fontSize: 14,
                         height: 1.7,
                       ),
                     ),
-                    SizedBox(height: 16),
-                    Text(
+                    const SizedBox(height: 16),
+                    const Text(
                       'Phiên bản 1.0.0',
                       style: TextStyle(
                         color: Colors.grey,

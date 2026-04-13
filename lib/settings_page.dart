@@ -29,7 +29,7 @@ class SettingsPage extends StatelessWidget {
     }
   }
 
-  Widget _buildSettingCard({
+  Widget _buildSettingCard(BuildContext context, {
     required IconData icon,
     required Color iconColor,
     required String title,
@@ -37,6 +37,7 @@ class SettingsPage extends StatelessWidget {
     required VoidCallback onTap,
     bool isDanger = false,
   }) {
+    final theme = Theme.of(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       child: Material(
@@ -47,7 +48,7 @@ class SettingsPage extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: kCardColor,
+              color: theme.cardColor,
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
                 color: isDanger
@@ -85,7 +86,7 @@ class SettingsPage extends StatelessWidget {
                       Text(
                         title,
                         style: TextStyle(
-                          color: isDanger ? Colors.redAccent : Colors.white,
+                          color: isDanger ? Colors.redAccent : (theme.brightness == Brightness.dark ? Colors.white : Colors.black),
                           fontSize: 17,
                           fontWeight: FontWeight.bold,
                         ),
@@ -104,7 +105,7 @@ class SettingsPage extends StatelessWidget {
                 ),
                 Icon(
                   Icons.chevron_right_rounded,
-                  color: isDanger ? Colors.redAccent : Colors.white54,
+                  color: isDanger ? Colors.redAccent : Colors.grey,
                   size: 28,
                 ),
               ],
@@ -116,25 +117,26 @@ class SettingsPage extends StatelessWidget {
   }
 
   Future<void> _showLogoutConfirm(BuildContext context) async {
+    final theme = Theme.of(context);
     final shouldLogout = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: kCardColor,
+          backgroundColor: theme.cardColor,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
           ),
-          title: const Text(
+          title: Text(
             "Xác nhận đăng xuất",
             style: TextStyle(
-              color: Colors.white,
+              color: theme.brightness == Brightness.dark ? Colors.white : Colors.black,
               fontWeight: FontWeight.bold,
             ),
           ),
-          content: const Text(
+          content: Text(
             "Bạn có chắc chắn muốn đăng xuất khỏi tài khoản này không?",
             style: TextStyle(
-              color: Colors.white70,
+              color: theme.brightness == Brightness.dark ? Colors.white70 : Colors.black87,
               height: 1.5,
             ),
           ),
@@ -168,8 +170,9 @@ class SettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Drawer(
-      backgroundColor: kBackgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       surfaceTintColor: Colors.transparent,
       width: MediaQuery.of(context).size.width * 0.85,
       shape: const RoundedRectangleBorder(
@@ -187,17 +190,17 @@ class SettingsPage extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     "Cài đặt",
                     style: TextStyle(
-                      color: Colors.white,
+                      color: theme.brightness == Brightness.dark ? Colors.white : Colors.black,
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
                       height: 1.15,
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close_rounded, color: Colors.white),
+                    icon: Icon(Icons.close_rounded, color: theme.brightness == Brightness.dark ? Colors.white : Colors.black),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
@@ -213,6 +216,7 @@ class SettingsPage extends StatelessWidget {
               ),
               const SizedBox(height: 28),
               _buildSettingCard(
+                context,
                 icon: Icons.info_outline,
                 iconColor: kPriority2Color,
                 title: "About",
@@ -225,6 +229,7 @@ class SettingsPage extends StatelessWidget {
                 },
               ),
               _buildSettingCard(
+                context,
                 icon: Icons.logout_rounded,
                 iconColor: Colors.redAccent,
                 title: "Logout",

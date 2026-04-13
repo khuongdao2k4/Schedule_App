@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'task_model.dart';
+import 'notification_service.dart';
 
 class TaskService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final NotificationService _notificationService = NotificationService();
 
   // 🔥 Kiểm tra trùng thời gian (Overlap)
   Future<bool> isTimeOverlapping(String userId, DateTime start, DateTime end, {String? excludeId}) async {
@@ -31,13 +33,19 @@ class TaskService {
 
   // 🔥 Thêm task (có kiểm tra trùng)
   Future<void> addTask(Task task) async {
-    await _db.collection('tasks').add(task.toMap());
+    DocumentReference docRef = await _db.collection('tasks').add(task.toMap());
+    Task newTask = task.copyWith(id: docRef.id);
+    await _notificationService.scheduleTaskNotifications(newTask);
   }
 
   // 🔥 Cập nhật toàn bộ task
   Future<void> updateTask(Task task) async {
     if (task.id == null) return;
     await _db.collection('tasks').doc(task.id).update(task.toMap());
+    await _notificationService.cancelTaskNotifications(task.id!);
+    if (!task.isDone) {
+      await _notificationService.scheduleTaskNotifications(task);
+    }
   }
 
   // 🔥 Lấy danh sách task
@@ -66,13 +74,21 @@ class TaskService {
   // 🔥 Toggle trạng thái hoàn thành
   Future<void> toggleDone(Task task) async {
     if (task.id == null) return;
+    bool newIsDone = !task.isDone;
     await _db.collection('tasks').doc(task.id).update({
-      'isDone': !task.isDone,
+      'isDone': newIsDone,
     });
+    
+    if (newIsDone) {
+      await _notificationService.cancelTaskNotifications(task.id!);
+    } else {
+      await _notificationService.scheduleTaskNotifications(task);
+    }
   }
 
   // 🔥 Xóa task
   Future<void> deleteTask(String id) async {
     await _db.collection('tasks').doc(id).delete();
+    await _notificationService.cancelTaskNotifications(id);
   }
 }
