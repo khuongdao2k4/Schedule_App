@@ -11,11 +11,13 @@ import 'add_task_page.dart';
 import 'profile_page.dart';
 import 'task_icons.dart';
 import 'calendar_page.dart';
+import 'user_service.dart';
 
 const kPriority1Color = Color(0xFFC9E8A2);
 const kPriority2Color = Color(0xFF4ED9F5);
 const kPriority3Color = Color(0xFFCDC1D8);
 const kNavbarColor = Color(0xFF121A26);
+const kCardColor = Color(0xFF263042);
 
 class MyTasksPage extends StatefulWidget {
   final DateTime? initialDate;
@@ -57,10 +59,10 @@ class _MyTasksPageState extends State<MyTasksPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Theme.of(context).cardColor,
+        backgroundColor: kCardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text("Xác nhận xóa"),
-        content: Text("Bạn có chắc chắn muốn xóa task \"${task.title}\" không?"),
+        title: const Text("Xác nhận xóa", style: TextStyle(color: Colors.white)),
+        content: Text("Bạn có chắc chắn muốn xóa task \"${task.title}\" không?", style: const TextStyle(color: Colors.white70)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text("Hủy", style: TextStyle(color: Colors.grey))),
           TextButton(
@@ -79,7 +81,7 @@ class _MyTasksPageState extends State<MyTasksPage> {
   void _showTaskDetail(Task task) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: const Color(0xFF1B2333),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(30))),
       builder: (context) => Container(
         padding: const EdgeInsets.all(30),
@@ -93,18 +95,18 @@ class _MyTasksPageState extends State<MyTasksPage> {
                   task.isDone 
                     ? Icons.check_circle_rounded 
                     : (task.iconCode != null ? IconData(task.iconCode!, fontFamily: 'MaterialIcons') : TaskIcons.getIconByTitle(task.title)), 
-                  color: kPriority1Color, size: 40
+                  color: kPriority2Color, size: 40
                 ),
                 const SizedBox(width: 15),
                 Expanded(
-                  child: Text(task.title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                  child: Text(task.title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
                 ),
               ],
             ),
             const SizedBox(height: 20),
             const Text("Mô tả:", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
             const SizedBox(height: 5),
-            Text(task.description.isEmpty ? "Không có mô tả" : task.description, style: const TextStyle(fontSize: 16)),
+            Text(task.description.isEmpty ? "Không có mô tả" : task.description, style: const TextStyle(fontSize: 16, color: Colors.white70)),
             const SizedBox(height: 20),
             const Text("Thời gian:", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
             const SizedBox(height: 5),
@@ -117,7 +119,7 @@ class _MyTasksPageState extends State<MyTasksPage> {
               width: double.infinity,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: kPriority1Color, 
+                  backgroundColor: kPriority2Color, 
                   foregroundColor: Colors.black,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))
                 ),
@@ -296,7 +298,9 @@ class _MyTasksPageState extends State<MyTasksPage> {
     Color cardColor = index % 3 == 0 ? kPriority1Color : (index % 3 == 1 ? kPriority2Color : kPriority3Color);
     bool isExpired = !task.isDone && task.endTime != null && now.isAfter(task.endTime!);
     String status = task.isDone ? "Hoàn thành" : (isExpired ? "Hết hạn" : "Đang chạy");
-    final IconData displayIcon = task.isDone ? Icons.check : (task.iconCode != null ? IconData(task.iconCode!, fontFamily: 'MaterialIcons') : TaskIcons.getIconByTitle(task.title));
+    
+    double progress = task.assignees.isEmpty ? (task.isDone ? 1.0 : 0.0) : (task.completedBy.length / task.assignees.length);
+    final IconData displayIcon = task.isDone ? Icons.check_circle_rounded : (task.iconCode != null ? IconData(task.iconCode!, fontFamily: 'MaterialIcons') : TaskIcons.getIconByTitle(task.title));
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 30),
@@ -320,17 +324,20 @@ class _MyTasksPageState extends State<MyTasksPage> {
                     clipper: MyTaskCardClipper(),
                     child: Container(
                       width: double.infinity, 
-                      padding: const EdgeInsets.fromLTRB(16, 55, 12, 16),
+                      padding: const EdgeInsets.fromLTRB(16, 50, 12, 16),
                       decoration: BoxDecoration(color: isExpired ? cardColor.withOpacity(0.4) : cardColor),
                       child: Row(
                         children: [
-                          Transform.rotate(
-                            angle: 0.785, 
-                            child: Container(
-                              width: 50, height: 50, 
-                              decoration: BoxDecoration(color: theme.scaffoldBackgroundColor, borderRadius: BorderRadius.circular(14)), 
-                              child: Transform.rotate(angle: -0.785, child: Center(child: Icon(displayIcon, color: isExpired ? Colors.red.withOpacity(0.5) : cardColor, size: 26)))
-                            )
+                          GestureDetector(
+                            onTap: () => _taskService.toggleDone(task),
+                            child: Transform.rotate(
+                              angle: 0.785, 
+                              child: Container(
+                                width: 50, height: 50, 
+                                decoration: BoxDecoration(color: theme.scaffoldBackgroundColor, borderRadius: BorderRadius.circular(14)), 
+                                child: Transform.rotate(angle: -0.785, child: Center(child: Icon(displayIcon, color: task.isDone ? kPriority1Color : (isExpired ? Colors.red.withOpacity(0.5) : cardColor), size: 26)))
+                              )
+                            ),
                           ),
                           const SizedBox(width: 15),
                           Expanded(
@@ -338,9 +345,9 @@ class _MyTasksPageState extends State<MyTasksPage> {
                               mainAxisSize: MainAxisSize.min, 
                               crossAxisAlignment: CrossAxisAlignment.start, 
                               children: [
-                                Text(task.title, style: TextStyle(color: isExpired ? Colors.black54 : Colors.black, fontSize: 18, fontWeight: FontWeight.bold, decoration: isExpired ? TextDecoration.lineThrough : null)), 
+                                Text(task.title, style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold, decoration: task.isDone || isExpired ? TextDecoration.lineThrough : null)), 
                                 const SizedBox(height: 4), 
-                                Text(task.description.isEmpty ? "Nhiệm vụ hệ thống" : task.description, style: TextStyle(color: isExpired ? Colors.black38 : Colors.black.withOpacity(0.6), fontSize: 13, fontWeight: FontWeight.w500))
+                                Text(task.description.isEmpty ? "Nhiệm vụ hệ thống" : task.description, style: TextStyle(color: Colors.black.withOpacity(0.6), fontSize: 13, fontWeight: FontWeight.w500))
                               ]
                             )
                           ),
@@ -349,35 +356,35 @@ class _MyTasksPageState extends State<MyTasksPage> {
                       ),
                     ),
                   ),
-                  Positioned(top: 15, left: 16, child: Text(status, style: const TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold))),
+                  Positioned(top: 12, left: 16, child: Text(status, style: const TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold))),
                   
                   Positioned(
-                    top: 2, 
+                    top: 0, 
                     left: 125, 
                     right: 12,
                     child: Row(
                       children: [
-                        _buildSmallAvatars(context),
+                        UserAvatarStack(uids: task.assignees, size: 28, cardColor: cardColor),
                         const Spacer(),
                         Container(
-                          width: 85, 
+                          width: 100, 
                           child: Row(
                             children: [
                               Expanded(
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(10),
                                   child: LinearProgressIndicator(
-                                    value: task.isDone ? 1.0 : 0.4, 
-                                    backgroundColor: Colors.black.withOpacity(0.1), 
-                                    valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF1B2333)), 
+                                    value: progress, 
+                                    backgroundColor: Colors.white.withOpacity(0.2), 
+                                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.white), 
                                     minHeight: 6,
                                   )
                                 )
                               ),
-                              const SizedBox(width: 6),
+                              const SizedBox(width: 8),
                               Text(
-                                task.isDone ? "100%" : "40%", 
-                                style: const TextStyle(color: Color(0xFF1B2333), fontSize: 10, fontWeight: FontWeight.bold)
+                                "${(progress * 100).toInt()}%", 
+                                style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)
                               ),
                             ],
                           ),
@@ -400,15 +407,15 @@ class _MyTasksPageState extends State<MyTasksPage> {
       elevation: 10,
       offset: const Offset(0, 45),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      color: theme.cardColor,
+      color: const Color(0xFF2E3A4F),
       onSelected: (val) {
         if (val == 'edit') Navigator.push(context, MaterialPageRoute(builder: (_) => EditTaskPage(task: task)));
         else if (val == 'delete') _confirmDelete(task);
         else if (val == 'detail') _showTaskDetail(task);
       },
       itemBuilder: (context) => [
-        _buildPopupItem('detail', Icons.info_outline_rounded, "Xem chi tiết", Colors.blue),
-        _buildPopupItem('edit', Icons.edit_outlined, "Sửa nhiệm vụ", kPriority1Color),
+        _buildPopupItem('detail', Icons.info_outline_rounded, "Chi tiết", Colors.white70),
+        _buildPopupItem('edit', Icons.edit_outlined, "Sửa nhiệm vụ", Colors.white70),
         const PopupMenuDivider(height: 1),
         _buildPopupItem('delete', Icons.delete_outline_rounded, "Xóa", Colors.redAccent),
       ],
@@ -422,51 +429,82 @@ class _MyTasksPageState extends State<MyTasksPage> {
         children: [
           Icon(icon, color: color, size: 20),
           const SizedBox(width: 12),
-          Text(text, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+          Text(text, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: color)),
         ],
       ),
     );
   }
+}
 
-  Widget _buildSmallAvatars(BuildContext context) {
-    Widget avatarCircle(int id, double left) {
-      return Positioned(
-        left: left,
-        child: CircleAvatar(
-          radius: 14,
-          backgroundColor: Colors.white,
-          child: CircleAvatar(
-            radius: 12,
-            backgroundColor: Theme.of(context).cardColor,
-            child: ClipOval(
-              child: Image.network(
-                "https://api.dicebear.com/7.x/avataaars/png?seed=$id",
-                errorBuilder: (context, error, stackTrace) => const Icon(Icons.person, size: 14, color: Colors.grey),
-              ),
-            ),
-          ),
-        ),
-      );
-    }
+class UserAvatarStack extends StatelessWidget {
+  final List<String> uids;
+  final double size;
+  final Color cardColor;
+  const UserAvatarStack({super.key, required this.uids, this.size = 24, required this.cardColor});
 
-    return Container(
-      width: 85, height: 28,
+  @override
+  Widget build(BuildContext context) {
+    if (uids.isEmpty) return const SizedBox.shrink();
+    int displayCount = uids.length > 3 ? 3 : uids.length;
+    
+    return SizedBox(
+      width: (displayCount * (size * 0.75)) + 35,
+      height: size + 4,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          avatarCircle(1, 0),
-          avatarCircle(2, 18),
-          avatarCircle(3, 36),
+          for (int i = 0; i < displayCount; i++)
+            Positioned(
+              left: i * (size * 0.75),
+              child: _SingleUserAvatar(uid: uids[i], size: size, cardColor: cardColor),
+            ),
           Positioned(
-            left: 54, 
+            left: displayCount * (size * 0.75),
             child: Container(
-              width: 28, height: 28,
-              decoration: BoxDecoration(color: Theme.of(context).scaffoldBackgroundColor, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
-              child: const Icon(Icons.add, size: 14)
-            )
+              width: size, height: size,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle, color: Colors.white.withOpacity(0.3),
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+              alignment: Alignment.center,
+              child: const Icon(Icons.add, size: 14, color: Colors.white)
+            ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _SingleUserAvatar extends StatelessWidget {
+  final String uid;
+  final double size;
+  final Color cardColor;
+  const _SingleUserAvatar({required this.uid, required this.size, required this.cardColor});
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: UserService().getUserData(uid),
+      builder: (context, snapshot) {
+        String? photoUrl = snapshot.data?['photo'];
+        return Container(
+          width: size, height: size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 2),
+            color: Colors.grey.shade800,
+          ),
+          child: ClipOval(
+            child: photoUrl != null
+                ? Image.network(
+                    photoUrl, fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Icon(Icons.person, size: size * 0.6, color: Colors.white54),
+                  )
+                : Icon(Icons.person, size: size * 0.6, color: Colors.white54),
+          ),
+        );
+      },
     );
   }
 }
@@ -485,7 +523,7 @@ class DashedLinePainter extends CustomPainter {
     }
   }
   @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class DomeClipper extends CustomClipper<Path> {
@@ -507,21 +545,22 @@ class MyTaskCardClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
     double r = 24;
-    double shoulderWidth = size.width * 0.38;
+    double shoulderWidth = 115; // Độ rộng của phần "Dang chay"
     double curveHeight = 35;
     Path path = Path();
 
-    path.moveTo(0, size.height - r);
-    path.quadraticBezierTo(0, size.height, r, size.height);
-    path.lineTo(size.width - r, size.height);
-    path.quadraticBezierTo(size.width, size.height, size.width, size.height - r);
-    path.lineTo(size.width, curveHeight + r);
-    path.quadraticBezierTo(size.width, curveHeight, size.width - r, curveHeight);
-    path.lineTo(shoulderWidth + r, curveHeight);
-    path.quadraticBezierTo(shoulderWidth, curveHeight, shoulderWidth, curveHeight / 2);
-    path.quadraticBezierTo(shoulderWidth, 0, shoulderWidth - r, 0);
-    path.lineTo(r, 0);
-    path.quadraticBezierTo(0, 0, 0, r);
+    path.moveTo(0, r);
+    path.quadraticBezierTo(0, 0, r, 0);
+    path.lineTo(shoulderWidth - r, 0);
+    path.quadraticBezierTo(shoulderWidth, 0, shoulderWidth, r);
+    path.lineTo(shoulderWidth, curveHeight - r);
+    path.quadraticBezierTo(shoulderWidth, curveHeight, shoulderWidth + r, curveHeight);
+    path.lineTo(size.width - r, curveHeight);
+    path.quadraticBezierTo(size.width, curveHeight, size.width, curveHeight + r);
+    path.lineTo(size.width, size.height - r);
+    path.quadraticBezierTo(size.width, size.height, size.width - r, size.height);
+    path.lineTo(r, size.height);
+    path.quadraticBezierTo(0, size.height, 0, size.height - r);
     path.close();
     return path;
   }

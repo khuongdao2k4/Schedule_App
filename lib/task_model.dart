@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Task {
   final String? id;
-  final String userId;
+  final String userId; // Creator
   final String title;
   final String description;
   final DateTime createdAt;
@@ -16,6 +16,8 @@ class Task {
   final int estimatedMinutes;
   final int actualMinutes;
   final int rescheduleCount;
+  final List<String> assignees; // List of user IDs
+  final List<String> completedBy; // List of user IDs who completed it
 
   Task({
     this.id,
@@ -33,7 +35,11 @@ class Task {
     this.estimatedMinutes = 30,
     this.actualMinutes = 0,
     this.rescheduleCount = 0,
-  }) : createdAt = createdAt ?? DateTime.now();
+    List<String>? assignees,
+    List<String>? completedBy,
+  })  : createdAt = createdAt ?? DateTime.now(),
+        assignees = assignees ?? [userId],
+        completedBy = completedBy ?? [];
 
   Task copyWith({
     String? id,
@@ -51,6 +57,8 @@ class Task {
     int? estimatedMinutes,
     int? actualMinutes,
     int? rescheduleCount,
+    List<String>? assignees,
+    List<String>? completedBy,
   }) {
     return Task(
       id: id ?? this.id,
@@ -68,6 +76,8 @@ class Task {
       estimatedMinutes: estimatedMinutes ?? this.estimatedMinutes,
       actualMinutes: actualMinutes ?? this.actualMinutes,
       rescheduleCount: rescheduleCount ?? this.rescheduleCount,
+      assignees: assignees ?? this.assignees,
+      completedBy: completedBy ?? this.completedBy,
     );
   }
 
@@ -87,6 +97,8 @@ class Task {
       'estimatedMinutes': estimatedMinutes,
       'actualMinutes': actualMinutes,
       'rescheduleCount': rescheduleCount,
+      'assignees': assignees,
+      'completedBy': completedBy,
     };
   }
 
@@ -107,6 +119,8 @@ class Task {
       estimatedMinutes: map['estimatedMinutes'] ?? 30,
       actualMinutes: map['actualMinutes'] ?? 0,
       rescheduleCount: map['rescheduleCount'] ?? 0,
+      assignees: List<String>.from(map['assignees'] ?? []),
+      completedBy: List<String>.from(map['completedBy'] ?? []),
     );
   }
 }

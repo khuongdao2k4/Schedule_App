@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'task_model.dart';
 import 'notification_service.dart';
 
@@ -8,9 +9,13 @@ class TaskService {
 
   // 🔥 Kiểm tra trùng thời gian (Overlap)
   Future<bool> isTimeOverlapping(String userId, DateTime start, DateTime end, {String? excludeId}) async {
+    // Kiểm tra trùng trên cả những task mình tạo HOẶC những task mình được giao
     final query = await _db
         .collection('tasks')
-        .where('userId', isEqualTo: userId)
+        .where(Filter.or(
+          Filter('userId', isEqualTo: userId),
+          Filter('assignees', arrayContains: userId),
+        ))
         .get();
 
     for (var doc in query.docs) {
@@ -22,8 +27,6 @@ class TaskService {
       final existingStart = (data['startTime'] as Timestamp).toDate();
       final existingEnd = (data['endTime'] as Timestamp).toDate();
 
-      // Logic kiểm tra chồng lấn:
-      // (Bắt đầu 1 < Kết thúc 2) VÀ (Kết thúc 1 > Bắt đầu 2)
       if (start.isBefore(existingEnd) && end.isAfter(existingStart)) {
         return true;
       }
@@ -31,7 +34,7 @@ class TaskService {
     return false;
   }
 
-  // 🔥 Thêm task (có kiểm tra trùng)
+  // 🔥 Thêm task
   Future<void> addTask(Task task) async {
     DocumentReference docRef = await _db.collection('tasks').add(task.toMap());
     Task newTask = task.copyWith(id: docRef.id);
@@ -48,11 +51,14 @@ class TaskService {
     }
   }
 
-  // 🔥 Lấy danh sách task
+  // 🔥 Lấy danh sách task (Lấy cả task cũ và task mới)
   Stream<List<Task>> getTasks(String userId) {
     return _db
         .collection('tasks')
-        .where('userId', isEqualTo: userId)
+        .where(Filter.or(
+          Filter('userId', isEqualTo: userId),
+          Filter('assignees', arrayContains: userId),
+        ))
         .snapshots()
         .map((snapshot) {
       final tasks = snapshot.docs
@@ -71,15 +77,27 @@ class TaskService {
     });
   }
 
-  // 🔥 Toggle trạng thái hoàn thành
+  // 🔥 Toggle trạng thái hoàn thành cá nhân
   Future<void> toggleDone(Task task) async {
     if (task.id == null) return;
-    bool newIsDone = !task.isDone;
+    final currentUid = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUid == null) return;
+
+    List<String> newCompletedBy = List.from(task.completedBy);
+    if (newCompletedBy.contains(currentUid)) {
+      newCompletedBy.remove(currentUid);
+    } else {
+      newCompletedBy.add(currentUid);
+    }
+
+    bool allCompleted = newCompletedBy.length >= task.assignees.length;
+
     await _db.collection('tasks').doc(task.id).update({
-      'isDone': newIsDone,
+      'completedBy': newCompletedBy,
+      'isDone': allCompleted,
     });
     
-    if (newIsDone) {
+    if (allCompleted) {
       await _notificationService.cancelTaskNotifications(task.id!);
     } else {
       await _notificationService.scheduleTaskNotifications(task);

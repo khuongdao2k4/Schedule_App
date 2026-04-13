@@ -12,4 +12,9 @@ class UserService {
       'lastLogin': DateTime.now(),
     }, SetOptions(merge: true));
   }
+
+  Future<Map<String, dynamic>?> getUserData(String uid) async {
+    final doc = await _db.collection('users').doc(uid).get();
+    return doc.data();
+  }
 }

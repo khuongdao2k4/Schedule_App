@@ -90,8 +90,8 @@ class TaskCardClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
     double r = 24.0;
-    double sh = 14.0; // Độ sâu lõm xuống
-    double sw = 50.0; // Độ rộng của phần nhô lên ở hai đầu
+    double sh = 14.0; 
+    double sw = 50.0; 
     double slant = 15.0;
     
     Path path = Path();
@@ -525,7 +525,8 @@ class _HomePageState extends State<HomePage> {
   Widget _buildTaskItem(Task task) {
     final now = DateTime.now();
     bool isEx = !task.isDone && task.endTime != null && now.isAfter(task.endTime!);
-    double progress = task.isDone ? 1.0 : (task.actualMinutes / (task.estimatedMinutes > 0 ? task.estimatedMinutes : 30)).clamp(0.0, 1.0);
+    // Tiến độ dựa trên số người hoàn thành
+    double progress = task.assignees.isEmpty ? (task.isDone ? 1.0 : 0.0) : (task.completedBy.length / task.assignees.length);
     
     IconData taskIcon;
     if (task.isDone) {
@@ -641,8 +642,6 @@ class _HomePageState extends State<HomePage> {
                             Navigator.push(context, MaterialPageRoute(builder: (_) => EditTaskPage(task: task)));
                           } else if (value == 'delete') {
                             _confirmDelete(task);
-                          } else if (value == 'detail') {
-                            // TODO: Mở trang chi tiết
                           }
                         },
                         itemBuilder: (context) => [
@@ -658,16 +657,7 @@ class _HomePageState extends State<HomePage> {
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    SizedBox(
-                      width: 70, height: 30,
-                      child: Stack(
-                        children: [
-                          _buildAvatar(0, "https://i.pravatar.cc/150?u=1"),
-                          _buildAvatar(15, "https://i.pravatar.cc/150?u=2"),
-                          _buildAvatar(30, "https://i.pravatar.cc/150?u=3"),
-                        ],
-                      ),
-                    ),
+                    UserAvatarStack(uids: task.assignees),
                     const SizedBox(width: 10),
                     Expanded(
                       child: ClipRRect(
@@ -705,33 +695,82 @@ class _HomePageState extends State<HomePage> {
         children: [
           Icon(icon, color: color, size: 22),
           const SizedBox(width: 12),
-          Text(
-            text,
-            style: TextStyle(color: color, fontSize: 15, fontWeight: FontWeight.w500),
-          ),
+          Text(text, style: TextStyle(color: color, fontSize: 15, fontWeight: FontWeight.w500)),
         ],
       ),
     );
   }
+}
 
-  Widget _buildAvatar(double left, String url) {
-    return Positioned(
-      left: left,
-      child: Container(
-        width: 24, height: 24,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(color: kCardColor, width: 2),
-          color: Colors.grey.shade800,
-        ),
-        child: ClipOval(
-          child: Image.network(
-            url,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) => const Icon(Icons.person, size: 14, color: Colors.white54),
-          ),
-        ),
+class UserAvatarStack extends StatelessWidget {
+  final List<String> uids;
+  final double size;
+  const UserAvatarStack({super.key, required this.uids, this.size = 24});
+
+  @override
+  Widget build(BuildContext context) {
+    if (uids.isEmpty) return const SizedBox.shrink();
+    
+    // Hiển thị tối đa 3 người, nếu nhiều hơn thì hiện dấu +
+    int displayCount = uids.length > 3 ? 3 : uids.length;
+    
+    return SizedBox(
+      width: (displayCount * (size * 0.65)) + (uids.length > 3 ? size : 0) + 10,
+      height: size,
+      child: Stack(
+        children: [
+          for (int i = 0; i < displayCount; i++)
+            Positioned(
+              left: i * (size * 0.65),
+              child: _SingleUserAvatar(uid: uids[i], size: size),
+            ),
+          if (uids.length > 3)
+            Positioned(
+              left: displayCount * (size * 0.65),
+              child: Container(
+                width: size, height: size,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle, color: Colors.grey.shade800,
+                  border: Border.all(color: kCardColor, width: 2),
+                ),
+                alignment: Alignment.center,
+                child: Text("+${uids.length - 3}", style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+              ),
+            ),
+        ],
       ),
+    );
+  }
+}
+
+class _SingleUserAvatar extends StatelessWidget {
+  final String uid;
+  final double size;
+  const _SingleUserAvatar({required this.uid, required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: UserService().getUserData(uid),
+      builder: (context, snapshot) {
+        String? photoUrl = snapshot.data?['photo'];
+        return Container(
+          width: size, height: size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: kCardColor, width: 2),
+            color: Colors.grey.shade800,
+          ),
+          child: ClipOval(
+            child: photoUrl != null
+                ? Image.network(
+                    photoUrl, fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Icon(Icons.person, size: size * 0.6, color: Colors.white54),
+                  )
+                : Icon(Icons.person, size: size * 0.6, color: Colors.white54),
+          ),
+        );
+      },
     );
   }
 }
