@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'task_model.dart';
 import 'task_service.dart';
+import 'user_service.dart';
 
 const kBackgroundColor = Color(0xFF0F172A);
 const kCardColor = Color(0xFF182235);
@@ -21,10 +22,12 @@ class AddTaskPage extends StatefulWidget {
 
 class _AddTaskPageState extends State<AddTaskPage> {
   final TaskService _taskService = TaskService();
+  final UserService _userService = UserService();
 
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descController = TextEditingController();
   final TextEditingController _estController = TextEditingController(text: '30');
+  final TextEditingController _emailController = TextEditingController();
 
   DateTime? _selectedDay;
   TimeOfDay? _startTime;
@@ -33,6 +36,10 @@ class _AddTaskPageState extends State<AddTaskPage> {
 
   String _selectedPriority = 'Medium';
   String _selectedCategory = 'Personal';
+
+  // Danh sách người tham gia (Lưu UID)
+  final List<String> _assignees = [];
+  final String _currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
 
   final List<String> _categories = [
     'Work', 
@@ -46,42 +53,32 @@ class _AddTaskPageState extends State<AddTaskPage> {
   ];
   final List<String> _priorities = ['Low', 'Medium', 'High'];
 
-  // Danh sách icon phong phú hơn và được phân loại ngầm
   final List<IconData> taskIcons = [
-    // Công việc & Học tập
     Icons.work_rounded,
     Icons.menu_book_rounded,
     Icons.code_rounded,
     Icons.terminal_rounded,
     Icons.edit_note_rounded,
     Icons.lightbulb_outline_rounded,
-    
-    // Sức khỏe & Thể thao
     Icons.fitness_center_rounded,
     Icons.directions_run_rounded,
-    Icons.self_improvement_rounded, // Yoga/Thiền
+    Icons.self_improvement_rounded,
     Icons.pool_rounded,
     Icons.pedal_bike_rounded,
     Icons.sports_soccer_rounded,
-    
-    // Đời sống & Giải trí
     Icons.restaurant_rounded,
     Icons.local_cafe_rounded,
-    Icons.celebration_rounded, // Vui chơi
+    Icons.celebration_rounded,
     Icons.movie_filter_rounded,
     Icons.videogame_asset_rounded,
     Icons.music_note_rounded,
     Icons.camera_alt_rounded,
-    
-    // Gia đình & Cá nhân
     Icons.home_rounded,
     Icons.shopping_cart_rounded,
-    Icons.payments_rounded, // Tài chính
+    Icons.payments_rounded,
     Icons.cleaning_services_rounded,
     Icons.pets_rounded,
     Icons.favorite_rounded,
-    
-    // Khác
     Icons.alarm_rounded,
     Icons.notifications_active_rounded,
     Icons.flight_takeoff_rounded,
@@ -90,6 +87,43 @@ class _AddTaskPageState extends State<AddTaskPage> {
   ];
 
   IconData _selectedIcon = Icons.assignment_rounded;
+
+  @override
+  void initState() {
+    super.initState();
+    // Người tạo task mặc định nằm trong danh sách
+    if (_currentUserId.isNotEmpty) {
+      _assignees.add(_currentUserId);
+    }
+  }
+
+  Future<void> _addUserByEmail() async {
+    final email = _emailController.text.trim().toLowerCase();
+    if (email.isEmpty) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final userData = await _userService.getUserByEmail(email);
+      if (userData == null) {
+        _showMessage("Không tìm thấy người dùng với email này!");
+      } else {
+        final uid = userData['uid'] as String;
+        if (_assignees.contains(uid)) {
+          _showMessage("Người dùng này đã có trong danh sách!");
+        } else {
+          setState(() {
+            _assignees.add(uid);
+            _emailController.clear();
+          });
+          _showMessage("Đã thêm người tham gia!");
+        }
+      }
+    } catch (e) {
+      _showMessage("Lỗi khi tìm kiếm người dùng");
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
@@ -172,6 +206,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
         priority: _selectedPriority,
         category: _selectedCategory,
         estimatedMinutes: int.tryParse(_estController.text) ?? 30,
+        assignees: _assignees,
       );
 
       await _taskService.addTask(task);
@@ -184,7 +219,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
   }
 
   void _showMessage(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.redAccent));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: kCardColor, behavior: SnackBarBehavior.floating));
   }
 
   @override
@@ -192,6 +227,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
     _titleController.dispose();
     _descController.dispose();
     _estController.dispose();
+    _emailController.dispose();
     super.dispose();
   }
 
@@ -264,6 +300,11 @@ class _AddTaskPageState extends State<AddTaskPage> {
                       _buildSectionLabel("Biểu tượng"),
                       const SizedBox(height: 10),
                       _buildIconGrid(),
+                      const SizedBox(height: 25),
+                      _buildSectionLabel("Thành viên thực hiện"),
+                      _buildAddMemberField(),
+                      const SizedBox(height: 15),
+                      _buildAssigneesList(),
                       const SizedBox(height: 30),
                     ],
                   ),
@@ -309,6 +350,83 @@ class _AddTaskPageState extends State<AddTaskPage> {
         style: const TextStyle(color: Colors.white, fontSize: 15),
         decoration: InputDecoration(hintText: hint, hintStyle: const TextStyle(color: Colors.white24), border: InputBorder.none, contentPadding: const EdgeInsets.all(16)),
       ),
+    );
+  }
+
+  Widget _buildAddMemberField() {
+    return Container(
+      decoration: BoxDecoration(color: kInputColor, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGlowColor.withOpacity(0.1))),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _emailController,
+              style: const TextStyle(color: Colors.white, fontSize: 14),
+              decoration: const InputDecoration(
+                hintText: "Nhập email người tham gia...",
+                hintStyle: TextStyle(color: Colors.white24),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(horizontal: 16),
+              ),
+              onSubmitted: (_) => _addUserByEmail(),
+            ),
+          ),
+          IconButton(
+            onPressed: _addUserByEmail,
+            icon: const Icon(Icons.person_add_alt_1_rounded, color: kGlowColor),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAssigneesList() {
+    if (_assignees.isEmpty) return const SizedBox.shrink();
+    return Column(
+      children: List.generate(_assignees.length, (index) {
+        final uid = _assignees[index];
+        bool isCreator = uid == _currentUserId;
+        return FutureBuilder<Map<String, dynamic>?>(
+          future: _userService.getUserData(uid),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) return const SizedBox.shrink();
+            final userData = snapshot.data!;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: kCardColor,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withOpacity(0.05)),
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundImage: userData['photo'] != null ? NetworkImage(userData['photo']) : null,
+                    child: userData['photo'] == null ? const Icon(Icons.person, size: 20) : null,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(userData['name'] ?? 'Unknown', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                        Text(isCreator ? "Người tạo nhiệm vụ" : "Người tham gia", style: TextStyle(color: isCreator ? kAccentSoft : kTextSoft, fontSize: 11)),
+                      ],
+                    ),
+                  ),
+                  if (!isCreator)
+                    IconButton(
+                      icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent, size: 20),
+                      onPressed: () => setState(() => _assignees.remove(uid)),
+                    ),
+                ],
+              ),
+            );
+          },
+        );
+      }),
     );
   }
 
@@ -382,7 +500,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
           shadowColor: kGlowColor.withOpacity(0.3),
         ),
         child: _isLoading 
-          ? const CircularProgressIndicator(color: Colors.black) 
+          ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 3))
           : const Text("TẠO TASK", style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
       ),
     );

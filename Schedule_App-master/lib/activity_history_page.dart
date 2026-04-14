@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'task_model.dart';
 import 'task_service.dart';
+import 'task_detail_page.dart';
 
 const kBackgroundColor = Color(0xFF1B2333);
 const kCardColor = Color(0xFF263042);
@@ -263,96 +264,99 @@ class _ActivityHistoryPageState extends State<ActivityHistoryPage> {
     final color = _getCategoryColor(task.category);
     final icon = _getCategoryIcon(task.category);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: kCardColor,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: IntrinsicHeight(
-          child: Row(
-            children: [
-              // Thanh màu bên cạnh để phân loại chủ đề
-              Container(width: 6, color: color),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(18),
-                  child: Row(
-                    children: [
-                      // Icon chủ đề
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: color.withOpacity(0.1),
-                          shape: BoxShape.circle,
+    return GestureDetector(
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TaskDetailPage(task: task))),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: kCardColor,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: IntrinsicHeight(
+            child: Row(
+              children: [
+                // Thanh màu bên cạnh để phân loại chủ đề
+                Container(width: 6, color: color),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Row(
+                      children: [
+                        // Icon chủ đề
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: color.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(icon, color: color, size: 24),
                         ),
-                        child: Icon(icon, color: color, size: 24),
-                      ),
-                      const SizedBox(width: 18),
-                      // Nội dung Task
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    task.title,
-                                    style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                        const SizedBox(width: 18),
+                        // Nội dung Task
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      task.title,
+                                      style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                   ),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.05),
-                                    borderRadius: BorderRadius.circular(8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.05),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      task.category,
+                                      style: TextStyle(color: color.withOpacity(0.8), fontSize: 10, fontWeight: FontWeight.bold),
+                                    ),
                                   ),
-                                  child: Text(
-                                    task.category,
-                                    style: TextStyle(color: color.withOpacity(0.8), fontSize: 10, fontWeight: FontWeight.bold),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  const Icon(Icons.event_available, color: kTextSoft, size: 14),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    task.dueDate != null ? DateFormat('dd/MM/yyyy').format(task.dueDate!) : "N/A",
+                                    style: const TextStyle(color: kTextSoft, fontSize: 13),
                                   ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                            Row(
-                              children: [
-                                const Icon(Icons.event_available, color: kTextSoft, size: 14),
-                                const SizedBox(width: 6),
-                                Text(
-                                  task.dueDate != null ? DateFormat('dd/MM/yyyy').format(task.dueDate!) : "N/A",
-                                  style: const TextStyle(color: kTextSoft, fontSize: 13),
-                                ),
-                                const SizedBox(width: 15),
-                                const Icon(Icons.access_time, color: kTextSoft, size: 14),
-                                const SizedBox(width: 6),
-                                Text(
-                                  task.startTime != null ? DateFormat('HH:mm').format(task.startTime!) : "--:--",
-                                  style: const TextStyle(color: kTextSoft, fontSize: 13),
-                                ),
-                              ],
-                            ),
-                          ],
+                                  const SizedBox(width: 15),
+                                  const Icon(Icons.access_time, color: kTextSoft, size: 14),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    task.startTime != null ? DateFormat('HH:mm').format(task.startTime!) : "--:--",
+                                    style: const TextStyle(color: kTextSoft, fontSize: 13),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      const Icon(Icons.chevron_right, color: Colors.white12, size: 20),
-                    ],
+                        const Icon(Icons.chevron_right, color: Colors.white12, size: 20),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

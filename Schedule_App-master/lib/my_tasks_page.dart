@@ -12,6 +12,7 @@ import 'profile_page.dart';
 import 'task_icons.dart';
 import 'calendar_page.dart';
 import 'user_service.dart';
+import 'task_detail_page.dart';
 
 const kPriority1Color = Color(0xFFC9E8A2);
 const kPriority2Color = Color(0xFF4ED9F5);
@@ -79,58 +80,7 @@ class _MyTasksPageState extends State<MyTasksPage> {
   }
 
   void _showTaskDetail(Task task) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF1B2333),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(30))),
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(30),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  task.isDone 
-                    ? Icons.check_circle_rounded 
-                    : (task.iconCode != null ? IconData(task.iconCode!, fontFamily: 'MaterialIcons') : TaskIcons.getIconByTitle(task.title)), 
-                  color: kPriority2Color, size: 40
-                ),
-                const SizedBox(width: 15),
-                Expanded(
-                  child: Text(task.title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            const Text("Mô tả:", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 5),
-            Text(task.description.isEmpty ? "Không có mô tả" : task.description, style: const TextStyle(fontSize: 16, color: Colors.white70)),
-            const SizedBox(height: 20),
-            const Text("Thời gian:", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 5),
-            Text(
-              "${task.startTime != null ? DateFormat('HH:mm').format(task.startTime!) : '--:--'} - ${task.endTime != null ? DateFormat('HH:mm').format(task.endTime!) : '--:--'}, ${task.dueDate != null ? DateFormat('dd/MM/yyyy').format(task.dueDate!) : ''}", 
-              style: const TextStyle(fontSize: 16, color: kPriority2Color)
-            ),
-            const SizedBox(height: 30),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: kPriority2Color, 
-                  foregroundColor: Colors.black,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))
-                ),
-                onPressed: () => Navigator.pop(context),
-                child: const Text("Đóng", style: TextStyle(fontWeight: FontWeight.bold)),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    Navigator.push(context, MaterialPageRoute(builder: (_) => TaskDetailPage(task: task)));
   }
 
   @override
@@ -309,112 +259,124 @@ class _MyTasksPageState extends State<MyTasksPage> {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 30),
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(width: 75, child: Column(children: [
-              Text(task.startTime != null ? DateFormat('HH:mm').format(task.startTime!) : "10:00", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 5),
-              Expanded(child: CustomPaint(painter: DashedLinePainter(color: theme.dividerColor))),
-              const SizedBox(height: 5),
-              Text(task.endTime != null ? DateFormat('HH:mm').format(task.endTime!) : "12:00", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-            ])),
-            const SizedBox(width: 15),
-            Expanded(
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  ClipPath(
-                    clipper: MyTaskCardClipper(),
-                    child: Container(
-                      width: double.infinity, 
-                      padding: const EdgeInsets.fromLTRB(16, 50, 12, 16),
-                      decoration: BoxDecoration(color: isExpired ? cardColor.withOpacity(0.4) : cardColor),
-                      child: Row(
-                        children: [
-                          GestureDetector(
-                            onTap: () {
-                              if (!isStarted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text("Nhiệm vụ chưa tới thời gian bắt đầu!"), duration: Duration(seconds: 2))
-                                );
-                                return;
-                              }
-                              _taskService.toggleDone(task);
-                            },
-                            child: Transform.rotate(
-                              angle: 0.785, 
-                              child: Container(
-                                width: 50, height: 50, 
-                                decoration: BoxDecoration(color: theme.scaffoldBackgroundColor, borderRadius: BorderRadius.circular(14)), 
-                                child: Transform.rotate(angle: -0.785, child: Center(child: Icon(displayIcon, color: task.isDone ? kPriority1Color : (isExpired ? Colors.red.withOpacity(0.5) : (isStarted ? cardColor : Colors.white24)), size: 26)))
+      child: Opacity(
+        opacity: isExpired ? 0.6 : 1.0,
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(width: 75, child: Column(children: [
+                Text(task.startTime != null ? DateFormat('HH:mm').format(task.startTime!) : "10:00", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 5),
+                Expanded(child: CustomPaint(painter: DashedLinePainter(color: theme.dividerColor))),
+                const SizedBox(height: 5),
+                Text(task.endTime != null ? DateFormat('HH:mm').format(task.endTime!) : "12:00", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              ])),
+              const SizedBox(width: 15),
+              Expanded(
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    ClipPath(
+                      clipper: MyTaskCardClipper(),
+                      child: Container(
+                        width: double.infinity, 
+                        padding: const EdgeInsets.fromLTRB(16, 50, 12, 16),
+                        decoration: BoxDecoration(color: isExpired ? cardColor.withOpacity(0.4) : cardColor),
+                        child: Row(
+                          children: [
+                            GestureDetector(
+                              onTap: () {
+                                if (isExpired) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text("Nhiệm vụ đã hết hạn, không thể hoàn thành!"), duration: Duration(seconds: 2))
+                                  );
+                                  return;
+                                }
+                                if (!isStarted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text("Nhiệm vụ chưa tới thời gian bắt đầu!"), duration: Duration(seconds: 2))
+                                  );
+                                  return;
+                                }
+                                _taskService.toggleDone(task);
+                              },
+                              child: Transform.rotate(
+                                angle: 0.785, 
+                                child: Container(
+                                  width: 50, height: 50, 
+                                  decoration: BoxDecoration(color: theme.scaffoldBackgroundColor, borderRadius: BorderRadius.circular(14)), 
+                                  child: Transform.rotate(angle: -0.785, child: Center(child: Icon(displayIcon, color: task.isDone ? kPriority1Color : (isExpired ? Colors.red.withOpacity(0.5) : (isStarted ? cardColor : Colors.white24)), size: 26)))
+                                )
+                              ),
+                            ),
+                            const SizedBox(width: 15),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => _showTaskDetail(task),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min, 
+                                  crossAxisAlignment: CrossAxisAlignment.start, 
+                                  children: [
+                                    Text(task.title, style: const TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold)),
+                                    const SizedBox(height: 4), 
+                                    Text(task.description.isEmpty ? "Nhiệm vụ hệ thống" : task.description, style: TextStyle(color: Colors.black.withOpacity(0.6), fontSize: 13, fontWeight: FontWeight.w500))
+                                  ]
+                                ),
                               )
                             ),
-                          ),
-                          const SizedBox(width: 15),
-                          Expanded(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min, 
-                              crossAxisAlignment: CrossAxisAlignment.start, 
+                            _buildModernPopupMenu(task, theme, isExpired),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Positioned(top: 12, left: 16, child: Text(status, style: const TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold))),
+                    
+                    Positioned(
+                      top: 0, 
+                      left: 125, 
+                      right: 12,
+                      child: Row(
+                        children: [
+                          UserAvatarStack(uids: task.assignees, size: 28, cardColor: cardColor),
+                          const Spacer(),
+                          Container(
+                            width: 100, 
+                            child: Row(
                               children: [
-                                Text(task.title, style: const TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold)),
-                                const SizedBox(height: 4), 
-                                Text(task.description.isEmpty ? "Nhiệm vụ hệ thống" : task.description, style: TextStyle(color: Colors.black.withOpacity(0.6), fontSize: 13, fontWeight: FontWeight.w500))
-                              ]
-                            )
+                                Expanded(
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: LinearProgressIndicator(
+                                      value: progress, 
+                                      backgroundColor: Colors.white.withOpacity(0.2), 
+                                      valueColor: const AlwaysStoppedAnimation<Color>(Colors.white), 
+                                      minHeight: 6,
+                                    )
+                                  )
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  "${(progress * 100).toInt()}%", 
+                                  style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)
+                                ),
+                              ],
+                            ),
                           ),
-                          _buildModernPopupMenu(task, theme),
                         ],
                       ),
                     ),
-                  ),
-                  Positioned(top: 12, left: 16, child: Text(status, style: const TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold))),
-                  
-                  Positioned(
-                    top: 0, 
-                    left: 125, 
-                    right: 12,
-                    child: Row(
-                      children: [
-                        UserAvatarStack(uids: task.assignees, size: 28, cardColor: cardColor),
-                        const Spacer(),
-                        Container(
-                          width: 100, 
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(10),
-                                  child: LinearProgressIndicator(
-                                    value: progress, 
-                                    backgroundColor: Colors.white.withOpacity(0.2), 
-                                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.white), 
-                                    minHeight: 6,
-                                  )
-                                )
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                "${(progress * 100).toInt()}%", 
-                                style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildModernPopupMenu(Task task, ThemeData theme) {
+  Widget _buildModernPopupMenu(Task task, ThemeData theme, bool isExpired) {
     return PopupMenuButton<String>(
       icon: const Icon(Icons.more_vert, color: Colors.black45),
       elevation: 10,
@@ -422,13 +384,21 @@ class _MyTasksPageState extends State<MyTasksPage> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       color: const Color(0xFF2E3A4F),
       onSelected: (val) {
-        if (val == 'edit') Navigator.push(context, MaterialPageRoute(builder: (_) => EditTaskPage(task: task)));
+        if (val == 'edit') {
+          if (isExpired) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Nhiệm vụ đã hết hạn, không thể sửa!"), duration: Duration(seconds: 2))
+            );
+            return;
+          }
+          Navigator.push(context, MaterialPageRoute(builder: (_) => EditTaskPage(task: task)));
+        }
         else if (val == 'delete') _confirmDelete(task);
         else if (val == 'detail') _showTaskDetail(task);
       },
       itemBuilder: (context) => [
         _buildPopupItem('detail', Icons.info_outline_rounded, "Chi tiết", Colors.white70),
-        _buildPopupItem('edit', Icons.edit_outlined, "Sửa nhiệm vụ", Colors.white70),
+        _buildPopupItem('edit', Icons.edit_outlined, "Sửa nhiệm vụ", isExpired ? Colors.grey : Colors.white70),
         const PopupMenuDivider(height: 1),
         _buildPopupItem('delete', Icons.delete_outline_rounded, "Xóa", Colors.redAccent),
       ],
@@ -458,7 +428,7 @@ class UserAvatarStack extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (uids.isEmpty) return const SizedBox.shrink();
-    int displayCount = uids.length > 3 ? 3 : uids.length;
+    int displayCount = uids.length > 2 ? 2 : uids.length;
     
     return SizedBox(
       width: (displayCount * (size * 0.75)) + 35,
@@ -471,18 +441,32 @@ class UserAvatarStack extends StatelessWidget {
               left: i * (size * 0.75),
               child: _SingleUserAvatar(uid: uids[i], size: size, cardColor: cardColor),
             ),
-          Positioned(
-            left: displayCount * (size * 0.75),
-            child: Container(
-              width: size, height: size,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle, color: Colors.white.withOpacity(0.3),
-                border: Border.all(color: Colors.white, width: 2),
+          if (uids.length > 2)
+            Positioned(
+              left: displayCount * (size * 0.75),
+              child: Container(
+                width: size, height: size,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle, color: Colors.grey.shade800,
+                  border: Border.all(color: Colors.white, width: 2),
+                ),
+                alignment: Alignment.center,
+                child: Text("+${uids.length - 2}", style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))
               ),
-              alignment: Alignment.center,
-              child: const Icon(Icons.add, size: 14, color: Colors.white)
+            )
+          else
+            Positioned(
+              left: displayCount * (size * 0.75),
+              child: Container(
+                width: size, height: size,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle, color: Colors.white.withOpacity(0.3),
+                  border: Border.all(color: Colors.white, width: 2),
+                ),
+                alignment: Alignment.center,
+                child: const Icon(Icons.add, size: 14, color: Colors.white)
+              ),
             ),
-          ),
         ],
       ),
     );

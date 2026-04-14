@@ -18,6 +18,7 @@ import 'settings_page.dart';
 import 'statistics_page.dart';
 import 'profile_page.dart';
 import 'task_icons.dart';
+import 'task_detail_page.dart';
 
 // --- Màu sắc chuẩn ---
 const kBackgroundColor = Color(0xFF1B2333); 
@@ -508,11 +509,31 @@ class _HomePageState extends State<HomePage> {
       child: Container(
         height: height, padding: const EdgeInsets.all(18), color: color,
         child: isLarge ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Center(child: Icon(icon, color: Colors.black54, size: 40)), const Spacer(),
+          Center(
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.08),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.black.withOpacity(0.1), width: 1),
+              ),
+              child: Icon(icon, color: Colors.black.withOpacity(0.7), size: 40)
+            )
+          ), 
+          const Spacer(),
           Text(title, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
           Text(count, style: TextStyle(color: Colors.black.withOpacity(0.6), fontSize: 14)),
         ]) : Row(children: [
-          Icon(icon, color: Colors.black54, size: 30), const SizedBox(width: 12),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.08),
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.black.withOpacity(0.1), width: 1),
+            ),
+            child: Icon(icon, color: Colors.black.withOpacity(0.7), size: 28)
+          ), 
+          const SizedBox(width: 12),
           Expanded(child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(title, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 15), overflow: TextOverflow.ellipsis),
             Text(count, style: TextStyle(color: Colors.black.withOpacity(0.6), fontSize: 12)),
@@ -570,140 +591,160 @@ class _HomePageState extends State<HomePage> {
           ),
           child: const Icon(Icons.delete_outline, color: Colors.white, size: 30),
         ),
-        child: ClipPath(
-          clipper: TaskCardClipper(),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
-            decoration: BoxDecoration(
-              color: kCardColor,
-              boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 5)),
-              ],
-            ),
-            child: Column(
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    GestureDetector(
-                      onTap: () {
-                        if (!isStarted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Nhiệm vụ chưa tới thời gian bắt đầu!"), duration: Duration(seconds: 2))
-                          );
-                          return;
-                        }
-                        _taskService.toggleDone(task);
-                      },
-                      child: SizedBox(
-                        width: 50, height: 50,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            Transform.rotate(
-                              angle: 0.785,
-                              child: Container(
-                                width: 40, height: 40,
-                                decoration: BoxDecoration(
-                                  color: task.isDone ? kPriority1Color.withOpacity(0.2) : kBackgroundColor,
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: task.isDone ? kPriority1Color : (isStarted ? Colors.white10 : Colors.white.withOpacity(0.05)), width: 1),
+        child: Opacity(
+          opacity: isExpired ? 0.6 : 1.0,
+          child: ClipPath(
+            clipper: TaskCardClipper(),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+              decoration: BoxDecoration(
+                color: isExpired ? kCardColor.withOpacity(0.5) : kCardColor,
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 5)),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          if (isExpired) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("Nhiệm vụ đã hết hạn, không thể hoàn thành!"), duration: Duration(seconds: 2))
+                            );
+                            return;
+                          }
+                          if (!isStarted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("Nhiệm vụ chưa tới thời gian bắt đầu!"), duration: Duration(seconds: 2))
+                            );
+                            return;
+                          }
+                          _taskService.toggleDone(task);
+                        },
+                        child: SizedBox(
+                          width: 50, height: 50,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              Transform.rotate(
+                                angle: 0.785,
+                                child: Container(
+                                  width: 40, height: 40,
+                                  decoration: BoxDecoration(
+                                    color: task.isDone ? kPriority1Color.withOpacity(0.2) : kBackgroundColor,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: task.isDone ? kPriority1Color : (isStarted ? Colors.white10 : Colors.white.withOpacity(0.05)), width: 1),
+                                  ),
                                 ),
                               ),
-                            ),
-                            Icon(taskIcon, color: task.isDone ? kPriority1Color : (isStarted ? kPriority2Color : Colors.white24), size: 24),
+                              Icon(taskIcon, color: task.isDone ? kPriority1Color : (isStarted && !isExpired ? kPriority2Color : Colors.white24), size: 24),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 15),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TaskDetailPage(task: task))),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      task.title,
+                                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: task.isDone ? kPriority1Color : (isExpired ? Colors.redAccent : (isStarted ? kPriority2Color : Colors.grey)),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      status,
+                                      style: const TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 5),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                task.category,
+                                style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.5)),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Theme(
+                        data: Theme.of(context).copyWith(
+                          hoverColor: Colors.transparent,
+                          splashColor: Colors.transparent,
+                          highlightColor: Colors.transparent,
+                        ),
+                        child: PopupMenuButton<String>(
+                          icon: const Icon(Icons.more_vert, color: Colors.white54),
+                          color: const Color(0xFF2E3A4F),
+                          elevation: 10,
+                          offset: const Offset(0, 40),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          onSelected: (value) {
+                            if (value == 'edit') {
+                              if (isExpired) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text("Nhiệm vụ đã hết hạn, không thể sửa!"), duration: Duration(seconds: 2))
+                                );
+                                return;
+                              }
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => EditTaskPage(task: task)));
+                            } else if (value == 'delete') {
+                              _confirmDelete(task);
+                            } else if (value == 'detail') {
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => TaskDetailPage(task: task)));
+                            }
+                          },
+                          itemBuilder: (context) => [
+                            _buildPopupItem('detail', Icons.info_outline, "Chi tiết", Colors.white70),
+                            _buildPopupItem('edit', Icons.edit_outlined, "Sửa", isExpired ? Colors.grey : Colors.white70),
+                            const PopupMenuDivider(height: 1),
+                            _buildPopupItem('delete', Icons.delete_outline, "Xóa", Colors.redAccent.withOpacity(0.8)),
                           ],
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 15),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  task.title,
-                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: task.isDone ? kPriority1Color : (isExpired ? Colors.redAccent : (isStarted ? kPriority2Color : Colors.grey)),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Text(
-                                  status,
-                                  style: const TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                              const SizedBox(width: 5),
-                            ],
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      UserAvatarStack(uids: task.assignees),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: LinearProgressIndicator(
+                            value: progress,
+                            backgroundColor: Colors.white.withOpacity(0.1),
+                            valueColor: AlwaysStoppedAnimation<Color>(task.isDone ? kPriority1Color : (isExpired ? Colors.grey : kPriority2Color)),
+                            minHeight: 6,
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            task.category,
-                            style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.5)),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Theme(
-                      data: Theme.of(context).copyWith(
-                        hoverColor: Colors.transparent,
-                        splashColor: Colors.transparent,
-                        highlightColor: Colors.transparent,
-                      ),
-                      child: PopupMenuButton<String>(
-                        icon: const Icon(Icons.more_vert, color: Colors.white54),
-                        color: const Color(0xFF2E3A4F),
-                        elevation: 10,
-                        offset: const Offset(0, 40),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        onSelected: (value) {
-                          if (value == 'edit') {
-                            Navigator.push(context, MaterialPageRoute(builder: (_) => EditTaskPage(task: task)));
-                          } else if (value == 'delete') {
-                            _confirmDelete(task);
-                          }
-                        },
-                        itemBuilder: (context) => [
-                          _buildPopupItem('detail', Icons.info_outline, "Chi tiết", Colors.white70),
-                          _buildPopupItem('edit', Icons.edit_outlined, "Sửa", Colors.white70),
-                          const PopupMenuDivider(height: 1),
-                          _buildPopupItem('delete', Icons.delete_outline, "Xóa", Colors.redAccent.withOpacity(0.8)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    UserAvatarStack(uids: task.assignees),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: LinearProgressIndicator(
-                          value: progress,
-                          backgroundColor: Colors.white.withOpacity(0.1),
-                          valueColor: AlwaysStoppedAnimation<Color>(task.isDone ? kPriority1Color : kPriority2Color),
-                          minHeight: 6,
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      "${(progress * 100).toInt()}%",
-                      style: TextStyle(color: task.isDone ? kPriority1Color : kPriority2Color, fontSize: 14, fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-              ],
+                      const SizedBox(width: 12),
+                      Text(
+                        "${(progress * 100).toInt()}%",
+                        style: TextStyle(color: task.isDone ? kPriority1Color : (isExpired ? Colors.grey : kPriority2Color), fontSize: 14, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),

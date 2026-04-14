@@ -17,4 +17,19 @@ class UserService {
     final doc = await _db.collection('users').doc(uid).get();
     return doc.data();
   }
+
+  Future<Map<String, dynamic>?> getUserByEmail(String email) async {
+    final snapshot = await _db
+        .collection('users')
+        .where('email', isEqualTo: email)
+        .limit(1)
+        .get();
+    
+    if (snapshot.docs.isNotEmpty) {
+      final data = snapshot.docs.first.data();
+      data['uid'] = snapshot.docs.first.id;
+      return data;
+    }
+    return null;
+  }
 }
