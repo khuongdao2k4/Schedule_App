@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
@@ -675,9 +676,17 @@ class _HomePageState extends State<HomePage> {
                                 ],
                               ),
                               const SizedBox(height: 4),
-                              Text(
-                                task.category,
-                                style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.5)),
+                              Row(
+                                children: [
+                                  Text(
+                                    task.category,
+                                    style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.5)),
+                                  ),
+                                  if (task.groupId != null) ...[
+                                    const SizedBox(width: 10),
+                                    _GroupBadge(groupId: task.groupId!),
+                                  ],
+                                ],
                               ),
                             ],
                           ),
@@ -765,6 +774,43 @@ class _HomePageState extends State<HomePage> {
           Text(text, style: TextStyle(color: color, fontSize: 15, fontWeight: FontWeight.w500)),
         ],
       ),
+    );
+  }
+}
+
+class _GroupBadge extends StatelessWidget {
+  final String groupId;
+  const _GroupBadge({required this.groupId});
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<DocumentSnapshot>(
+      future: FirebaseFirestore.instance.collection('groups').doc(groupId).get(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SizedBox.shrink();
+        final groupName = snapshot.data?['name'] ?? 'Nhóm';
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(
+            color: kPriority2Color.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.group_outlined, size: 12, color: kPriority2Color),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  groupName.toUpperCase(),
+                  style: const TextStyle(color: kPriority2Color, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

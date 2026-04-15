@@ -18,6 +18,18 @@ class UserService {
     return doc.data();
   }
 
+  Future<void> updateSelectedBadge(String uid, String? badgeName) async {
+    await _db.collection('users').doc(uid).update({
+      'selectedBadge': badgeName,
+    });
+  }
+
+  Future<void> updateHideBadgesStatus(String uid, bool hide) async {
+    await _db.collection('users').doc(uid).update({
+      'hideBadges': hide,
+    });
+  }
+
   Future<Map<String, dynamic>?> getUserByEmail(String email) async {
     final snapshot = await _db
         .collection('users')

@@ -4,14 +4,19 @@ import 'package:intl/intl.dart';
 import 'task_service.dart';
 import 'task_model.dart';
 import 'auth_service.dart';
+import 'user_service.dart';
 import 'activity_history_page.dart';
 import 'account_settings_page.dart';
+import 'badges_page.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
 
-  String _getUserRank(int completedCount) {
-    if (completedCount >= 50) return "Bậc thầy năng suất";
+  // Giữ lại logic cũ để làm mặc định nếu người dùng chưa chọn danh hiệu
+  String _getDefaultRank(List<Task> tasks) {
+    final completedCount = tasks.where((t) => t.isDone).length;
+    if (completedCount >= 100) return "Huyền thoại năng suất";
+    if (completedCount >= 50) return "Bậc thầy điều phối";
     if (completedCount >= 20) return "Chuyên gia lập kế hoạch";
     if (completedCount >= 5) return "Chiến binh kỷ luật";
     return "Tân thủ tiềm năng";
@@ -21,6 +26,7 @@ class ProfilePage extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
     final TaskService taskService = TaskService();
+    final UserService userService = UserService();
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -34,83 +40,109 @@ class ProfilePage extends StatelessWidget {
         title: const Text("Hồ sơ cá nhân", style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
-            // --- Header: Avatar & Rank ---
-            _buildHeader(context, user, taskService),
-            const SizedBox(height: 30),
+      body: StreamBuilder<List<Task>>(
+        stream: taskService.getTasks(user?.uid ?? ''),
+        builder: (context, taskSnapshot) {
+          final tasks = taskSnapshot.data ?? [];
+          final doneTasks = tasks.where((t) => t.isDone).toList();
+          
+          return FutureBuilder<Map<String, dynamic>?>(
+            future: userService.getUserData(user?.uid ?? ''),
+            builder: (context, userSnapshot) {
+              final userData = userSnapshot.data;
+              final selectedBadge = userData?['selectedBadge'];
 
-            // --- Stats Row ---
-            StreamBuilder<List<Task>>(
-              stream: taskService.getTasks(user?.uid ?? ''),
-              builder: (context, snapshot) {
-                final tasks = snapshot.data ?? [];
-                final done = tasks.where((t) => t.isDone).length;
-                return _buildStatsRow(context, tasks.length, done);
-              },
-            ),
-            const SizedBox(height: 35),
+              return SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 20),
+                    // --- Header: Avatar & Rank ---
+                    _buildHeader(context, user, selectedBadge, tasks),
+                    const SizedBox(height: 30),
 
-            // --- Menu Area ---
-            _buildMenuCard(context),
-            
-            const SizedBox(height: 40),
-            Text(
-              "Tham gia từ: ${user?.metadata.creationTime != null ? DateFormat('dd/MM/yyyy').format(user!.metadata.creationTime!) : '--/--/----'}",
-              style: const TextStyle(color: Colors.grey, fontSize: 13),
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
+                    // --- Stats Row ---
+                    _buildStatsRow(context, tasks.length, doneTasks.length),
+                    const SizedBox(height: 35),
+
+                    // --- Menu Area ---
+                    _buildMenuCard(context),
+                    
+                    const SizedBox(height: 40),
+                    Text(
+                      "Tham gia từ: ${user?.metadata.creationTime != null ? DateFormat('dd/MM/yyyy').format(user!.metadata.creationTime!) : '--/--/----'}",
+                      style: const TextStyle(color: Colors.grey, fontSize: 13),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              );
+            }
+          );
+        }
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context, User? user, TaskService taskService) {
+  Widget _buildHeader(BuildContext context, User? user, String? selectedBadge, List<Task> tasks) {
     final accentColor = Theme.of(context).primaryColor;
-    return StreamBuilder<List<Task>>(
-      stream: taskService.getTasks(user?.uid ?? ''),
-      builder: (context, snapshot) {
-        final completed = (snapshot.data ?? []).where((t) => t.isDone).length;
-        return Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: accentColor, width: 2.5),
+    
+    // Tìm màu cho badge nếu là badge hệ thống đã chọn
+    Color badgeColor = accentColor;
+    String displayRank = selectedBadge ?? _getDefaultRank(tasks);
+    
+    // Mapping màu sắc cơ bản cho các danh hiệu phổ biến
+    if (displayRank.contains("Huyền thoại")) badgeColor = Colors.amber;
+    else if (displayRank.contains("Khủng hoảng")) badgeColor = Colors.redAccent;
+    else if (displayRank.contains("Học giả")) badgeColor = Colors.indigoAccent;
+    else if (displayRank.contains("Công việc")) badgeColor = Colors.orangeAccent;
+    else if (displayRank.contains("Thép")) badgeColor = Colors.greenAccent;
+    else if (displayRank.contains("Điều phối")) badgeColor = Colors.purpleAccent;
+    else if (displayRank.contains("Chuyên gia")) badgeColor = Colors.teal;
+    else if (displayRank.contains("Chiến binh")) badgeColor = Colors.green;
+    else badgeColor = Colors.blueGrey;
+
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: accentColor, width: 2.5),
+          ),
+          child: CircleAvatar(
+            radius: 55,
+            backgroundColor: Theme.of(context).cardColor,
+            backgroundImage: user?.photoURL != null ? NetworkImage(user!.photoURL!) : null,
+            child: user?.photoURL == null ? Icon(Icons.person, size: 50, color: accentColor) : null,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          user?.displayName ?? "Người dùng",
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 10),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          decoration: BoxDecoration(
+            color: badgeColor.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: badgeColor.withOpacity(0.4), width: 1.5),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.verified_rounded, size: 14, color: badgeColor),
+              const SizedBox(width: 6),
+              Text(
+                displayRank,
+                style: TextStyle(color: badgeColor, fontSize: 13, fontWeight: FontWeight.bold),
               ),
-              child: CircleAvatar(
-                radius: 55,
-                backgroundColor: Theme.of(context).cardColor,
-                backgroundImage: user?.photoURL != null ? NetworkImage(user!.photoURL!) : null,
-                child: user?.photoURL == null ? Icon(Icons.person, size: 50, color: accentColor) : null,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              user?.displayName ?? "Người dùng",
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              decoration: BoxDecoration(
-                color: accentColor.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: accentColor.withOpacity(0.3)),
-              ),
-              child: Text(
-                _getUserRank(completed),
-                style: TextStyle(color: accentColor, fontSize: 12, fontWeight: FontWeight.w600),
-              ),
-            ),
-          ],
-        );
-      }
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -155,6 +187,10 @@ class ProfilePage extends StatelessWidget {
       ),
       child: Column(
         children: [
+          _menuTile(context, Icons.workspace_premium_outlined, "Mở khóa danh hiệu", () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const BadgesPage()));
+          }),
+          _divider(),
           _menuTile(context, Icons.history_rounded, "Lịch sử hoạt động", () {
             Navigator.push(context, MaterialPageRoute(builder: (_) => const ActivityHistoryPage()));
           }),

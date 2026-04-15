@@ -18,6 +18,12 @@ class Task {
   final int rescheduleCount;
   final List<String> assignees; // List of user IDs
   final List<String> completedBy; // List of user IDs who completed it
+  final List<String> acceptedBy; // List of user IDs who accepted the task
+  
+  // New fields for Group feature
+  final String? groupId;
+  final String status; // 'pending' (proposal), 'approved', 'declined'
+  final String? proposedBy;
 
   Task({
     this.id,
@@ -37,9 +43,14 @@ class Task {
     this.rescheduleCount = 0,
     List<String>? assignees,
     List<String>? completedBy,
+    List<String>? acceptedBy,
+    this.groupId,
+    this.status = 'approved', // Default to approved for personal tasks
+    this.proposedBy,
   })  : createdAt = createdAt ?? DateTime.now(),
         assignees = assignees ?? [userId],
-        completedBy = completedBy ?? [];
+        completedBy = completedBy ?? [],
+        acceptedBy = acceptedBy ?? [userId];
 
   Task copyWith({
     String? id,
@@ -59,6 +70,10 @@ class Task {
     int? rescheduleCount,
     List<String>? assignees,
     List<String>? completedBy,
+    List<String>? acceptedBy,
+    String? groupId,
+    String? status,
+    String? proposedBy,
   }) {
     return Task(
       id: id ?? this.id,
@@ -78,6 +93,10 @@ class Task {
       rescheduleCount: rescheduleCount ?? this.rescheduleCount,
       assignees: assignees ?? this.assignees,
       completedBy: completedBy ?? this.completedBy,
+      acceptedBy: acceptedBy ?? this.acceptedBy,
+      groupId: groupId ?? this.groupId,
+      status: status ?? this.status,
+      proposedBy: proposedBy ?? this.proposedBy,
     );
   }
 
@@ -99,6 +118,10 @@ class Task {
       'rescheduleCount': rescheduleCount,
       'assignees': assignees,
       'completedBy': completedBy,
+      'acceptedBy': acceptedBy,
+      'groupId': groupId,
+      'status': status,
+      'proposedBy': proposedBy,
     };
   }
 
@@ -121,6 +144,10 @@ class Task {
       rescheduleCount: map['rescheduleCount'] ?? 0,
       assignees: List<String>.from(map['assignees'] ?? []),
       completedBy: List<String>.from(map['completedBy'] ?? []),
+      acceptedBy: List<String>.from(map['acceptedBy'] ?? []),
+      groupId: map['groupId'],
+      status: map['status'] ?? 'approved',
+      proposedBy: map['proposedBy'],
     );
   }
 }

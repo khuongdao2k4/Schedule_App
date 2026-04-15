@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'task_model.dart';
 import 'task_service.dart';
 import 'user_service.dart';
 import 'task_icons.dart';
+import 'user_profile_page.dart';
 
 const kBackgroundColor = Color(0xFF1B2333);
 const kCardColor = Color(0xFF263042);
@@ -18,7 +20,6 @@ class TaskDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final now = DateTime.now();
     bool isExpired = !task.isDone && task.endTime != null && now.isAfter(task.endTime!);
     bool isStarted = task.startTime == null || now.isAfter(task.startTime!);
@@ -27,7 +28,6 @@ class TaskDetailPage extends StatelessWidget {
     Color statusColor = task.isDone ? kAccentColor : (isExpired ? Colors.redAccent : (isStarted ? kPriority2Color : kTextSoft));
     final IconData displayIcon = task.iconCode != null ? IconData(task.iconCode!, fontFamily: 'MaterialIcons') : TaskIcons.getIconByTitle(task.title);
 
-    // Tính toán tiến độ
     int totalAssignees = task.assignees.length;
     int completedCount = task.completedBy.length;
     double progress = totalAssignees == 0 ? (task.isDone ? 1.0 : 0.0) : (completedCount / totalAssignees);
@@ -73,21 +73,20 @@ class TaskDetailPage extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              task.title,
-                              style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
-                            ),
+                            Text(task.title, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
                             const SizedBox(height: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: statusColor.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Text(
-                                status,
-                                style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.bold),
-                              ),
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(color: statusColor.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
+                                  child: Text(status, style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.bold)),
+                                ),
+                                if (task.groupId != null) ...[
+                                  const SizedBox(width: 8),
+                                  _GroupBadgeDetail(groupId: task.groupId!),
+                                ],
+                              ],
                             ),
                           ],
                         ),
@@ -111,36 +110,26 @@ class TaskDetailPage extends StatelessWidget {
             ),
             const SizedBox(height: 30),
 
-            // Tiến độ công việc
+            // Tiến độ
             const Text("Tiến độ", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: kCardColor,
-                borderRadius: BorderRadius.circular(24),
-              ),
+              decoration: BoxDecoration(color: kCardColor, borderRadius: BorderRadius.circular(24)),
               child: Column(
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        "Thành viên hoàn thành",
-                        style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 14),
-                      ),
-                      Text(
-                        "$completedCount/$totalAssignees",
-                        style: const TextStyle(color: kAccentColor, fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
+                      Text("Thành viên hoàn thành", style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 14)),
+                      Text("$completedCount/$totalAssignees", style: const TextStyle(color: kAccentColor, fontSize: 16, fontWeight: FontWeight.bold)),
                     ],
                   ),
                   const SizedBox(height: 12),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(10),
                     child: LinearProgressIndicator(
-                      value: progress,
-                      minHeight: 10,
+                      value: progress, minHeight: 10,
                       backgroundColor: Colors.white.withOpacity(0.05),
                       valueColor: const AlwaysStoppedAnimation<Color>(kAccentColor),
                     ),
@@ -148,17 +137,14 @@ class TaskDetailPage extends StatelessWidget {
                   const SizedBox(height: 8),
                   Align(
                     alignment: Alignment.centerRight,
-                    child: Text(
-                      "${(progress * 100).toInt()}%",
-                      style: const TextStyle(color: kTextSoft, fontSize: 12, fontWeight: FontWeight.w500),
-                    ),
+                    child: Text("${(progress * 100).toInt()}%", style: const TextStyle(color: kTextSoft, fontSize: 12, fontWeight: FontWeight.w500)),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 30),
 
-            // Description
+            // Mô tả
             const Text("Mô tả", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             Container(
@@ -176,7 +162,7 @@ class TaskDetailPage extends StatelessWidget {
             ),
             const SizedBox(height: 30),
 
-            // Details Grid
+            // Chi tiết khác
             Row(
               children: [
                 Expanded(child: _buildDetailTile("Ưu tiên", task.priority, Icons.flag_outlined, kPriority3Color)),
@@ -186,7 +172,7 @@ class TaskDetailPage extends StatelessWidget {
             ),
             const SizedBox(height: 30),
 
-            // Assignees
+            // Assignees List
             const Text("Người tham gia", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
             if (task.assignees.isEmpty)
@@ -197,10 +183,10 @@ class TaskDetailPage extends StatelessWidget {
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: task.assignees.length,
                 itemBuilder: (context, index) {
-                  return _buildUserTile(task.assignees[index], task.completedBy.contains(task.assignees[index]));
+                  return _buildUserTile(context, task.assignees[index], task.completedBy.contains(task.assignees[index]));
                 },
               ),
-            const SizedBox(height: 100), // Space for bottom button if needed
+            const SizedBox(height: 50),
           ],
         ),
       ),
@@ -222,10 +208,7 @@ class TaskDetailPage extends StatelessWidget {
   Widget _buildDetailTile(String label, String value, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: kCardColor,
-        borderRadius: BorderRadius.circular(20),
-      ),
+      decoration: BoxDecoration(color: kCardColor, borderRadius: BorderRadius.circular(20)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -239,7 +222,9 @@ class TaskDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildUserTile(String uid, bool isCompleted) {
+  Widget _buildUserTile(BuildContext context, String uid, bool isCompleted) {
+    bool isOwner = uid == task.userId; // Xác định chủ sở hữu task
+
     return FutureBuilder<Map<String, dynamic>?>(
       future: UserService().getUserData(uid),
       builder: (context, snapshot) {
@@ -250,10 +235,7 @@ class TaskDetailPage extends StatelessWidget {
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: kCardColor,
-            borderRadius: BorderRadius.circular(15),
-          ),
+          decoration: BoxDecoration(color: kCardColor, borderRadius: BorderRadius.circular(15)),
           child: Row(
             children: [
               CircleAvatar(
@@ -264,15 +246,23 @@ class TaskDetailPage extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                    const SizedBox(height: 2),
+                    Text(
+                      isOwner ? "Người tạo nhiệm vụ" : "Người tham gia",
+                      style: TextStyle(color: isOwner ? kAccentColor : kTextSoft, fontSize: 11),
+                    ),
+                  ],
+                ),
               ),
               if (isCompleted)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: kAccentColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: BoxDecoration(color: kAccentColor.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
                   child: const Row(
                     children: [
                       Icon(Icons.check_circle, color: kAccentColor, size: 14),
@@ -281,6 +271,65 @@ class TaskDetailPage extends StatelessWidget {
                     ],
                   ),
                 ),
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert, color: Colors.white54, size: 20),
+                color: const Color(0xFF2E3A4F),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                onSelected: (val) {
+                  if (val == 'view_profile') {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => UserProfilePage(uid: uid)));
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'view_profile',
+                    child: Row(
+                      children: [
+                        Icon(Icons.person_outline, color: Colors.white, size: 18),
+                        SizedBox(width: 10),
+                        Text("Xem trang cá nhân", style: TextStyle(color: Colors.white, fontSize: 14)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _GroupBadgeDetail extends StatelessWidget {
+  final String groupId;
+  const _GroupBadgeDetail({required this.groupId});
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<DocumentSnapshot>(
+      future: FirebaseFirestore.instance.collection('groups').doc(groupId).get(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SizedBox.shrink();
+        final groupName = snapshot.data?['name'] ?? 'Nhóm';
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.groups_rounded, size: 14, color: Colors.white70),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  groupName,
+                  style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w500),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ],
           ),
         );

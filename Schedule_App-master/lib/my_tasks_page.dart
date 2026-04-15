@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'task_model.dart';
 import 'task_service.dart';
@@ -321,19 +322,29 @@ class _MyTasksPageState extends State<MyTasksPage> {
   Widget _buildTimelineTaskItem(Task task, int index) {
     final now = DateTime.now();
     final theme = Theme.of(context);
+    final user = FirebaseAuth.instance.currentUser;
     Color cardColor = index % 3 == 0 ? kPriority1Color : (index % 3 == 1 ? kPriority2Color : kPriority3Color);
     
     bool isExpired = !task.isDone && task.endTime != null && now.isAfter(task.endTime!);
     bool isStarted = task.startTime == null || now.isAfter(task.startTime!);
-    String status = task.isDone ? "Hoàn thành" : (isExpired ? "Hết hạn" : (isStarted ? "Đang chạy" : "Chưa tới giờ"));
     
+    // 🔥 Phân biệt rõ Creator và Member
+    bool isCreator = user != null && task.userId == user.uid;
+    bool hasAccepted = user != null && task.acceptedBy.contains(user.uid);
+    
+    // Chỉ hiển thị là "Lời mời" nếu là thành viên nhưng KHÔNG PHẢI người tạo và CHƯA đồng ý
+    bool showAsInvitation = !isCreator && !hasAccepted;
+
+    String status = task.isDone ? "Hoàn thành" : (isExpired ? "Hết hạn" : (isStarted ? "Đang chạy" : "Chưa tới giờ"));
+    if (showAsInvitation) status = "Lời mời";
+
     double progress = task.assignees.isEmpty ? (task.isDone ? 1.0 : 0.0) : (task.completedBy.length / task.assignees.length);
     final IconData displayIcon = task.isDone ? Icons.check_circle_rounded : (task.iconCode != null ? IconData(task.iconCode!, fontFamily: 'MaterialIcons') : TaskIcons.getIconByTitle(task.title));
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 30),
       child: Opacity(
-        opacity: isExpired ? 0.6 : 1.0,
+        opacity: (isExpired || showAsInvitation) ? 0.6 : 1.0,
         child: IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -360,6 +371,7 @@ class _MyTasksPageState extends State<MyTasksPage> {
                           children: [
                             GestureDetector(
                               onTap: () {
+                                if (showAsInvitation) return;
                                 if (isExpired) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(content: Text("Nhiệm vụ đã hết hạn, không thể hoàn thành!"), duration: Duration(seconds: 2))
@@ -386,24 +398,32 @@ class _MyTasksPageState extends State<MyTasksPage> {
                             const SizedBox(width: 15),
                             Expanded(
                               child: GestureDetector(
-                                onTap: () => _showTaskDetail(task),
+                                onTap: () => !showAsInvitation ? _showTaskDetail(task) : null,
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min, 
                                   crossAxisAlignment: CrossAxisAlignment.start, 
                                   children: [
                                     Text(task.title, style: const TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold)),
-                                    const SizedBox(height: 4), 
+                                    const SizedBox(height: 2),
+                                    if (task.groupId != null) ...[
+                                      _GroupBadge(groupId: task.groupId!),
+                                      const SizedBox(height: 4),
+                                    ],
                                     Text(task.description.isEmpty ? "Nhiệm vụ hệ thống" : task.description, style: TextStyle(color: Colors.black.withOpacity(0.6), fontSize: 13, fontWeight: FontWeight.w500))
                                   ]
                                 ),
                               )
                             ),
-                            _buildModernPopupMenu(task, theme, isExpired),
+                            _buildModernPopupMenu(task, theme, isExpired, showAsInvitation),
                           ],
                         ),
                       ),
                     ),
-                    Positioned(top: 12, left: 16, child: Text(status, style: const TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold))),
+                    Positioned(
+                      top: 12, 
+                      left: 16, 
+                      child: Text(status, style: const TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold)),
+                    ),
                     
                     Positioned(
                       top: 0, 
@@ -454,15 +474,24 @@ class _MyTasksPageState extends State<MyTasksPage> {
     );
   }
 
-  Widget _buildModernPopupMenu(Task task, ThemeData theme, bool isExpired) {
+  Widget _buildModernPopupMenu(Task task, ThemeData theme, bool isExpired, bool showAsInvitation) {
+    final user = FirebaseAuth.instance.currentUser;
     return PopupMenuButton<String>(
       icon: const Icon(Icons.more_vert, color: Colors.black45),
       elevation: 10,
       offset: const Offset(0, 45),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       color: const Color(0xFF2E3A4F),
-      onSelected: (val) {
-        if (val == 'edit') {
+      onSelected: (val) async {
+        if (val == 'accept') {
+          if (user != null && task.id != null) {
+            await _taskService.acceptTask(task.id!, user.uid);
+          }
+        } else if (val == 'reject') {
+          if (user != null && task.id != null) {
+            await _taskService.rejectTask(task.id!, user.uid);
+          }
+        } else if (val == 'edit') {
           if (isExpired) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text("Nhiệm vụ đã hết hạn, không thể sửa!"), duration: Duration(seconds: 2))
@@ -474,12 +503,22 @@ class _MyTasksPageState extends State<MyTasksPage> {
         else if (val == 'delete') _confirmDelete(task);
         else if (val == 'detail') _showTaskDetail(task);
       },
-      itemBuilder: (context) => [
-        _buildPopupItem('detail', Icons.info_outline_rounded, "Chi tiết", Colors.white70),
-        _buildPopupItem('edit', Icons.edit_outlined, "Sửa nhiệm vụ", isExpired ? Colors.grey : Colors.white70),
-        const PopupMenuDivider(height: 1),
-        _buildPopupItem('delete', Icons.delete_outline_rounded, "Xóa", Colors.redAccent),
-      ],
+      itemBuilder: (context) {
+        // 🔥 Nếu là lời mời, chỉ hiện Đồng ý/Từ chối
+        if (showAsInvitation) {
+          return [
+            _buildPopupItem('accept', Icons.check_circle_outline, "Đồng ý", Colors.greenAccent),
+            _buildPopupItem('reject', Icons.cancel_outlined, "Từ chối", Colors.redAccent),
+          ];
+        }
+        // 🔥 Ngược lại hiển thị menu quản lý bình thường
+        return [
+          _buildPopupItem('detail', Icons.info_outline_rounded, "Chi tiết", Colors.white70),
+          _buildPopupItem('edit', Icons.edit_outlined, "Sửa nhiệm vụ", isExpired ? Colors.grey : Colors.white70),
+          const PopupMenuDivider(height: 1),
+          _buildPopupItem('delete', Icons.delete_outline_rounded, "Xóa", Colors.redAccent),
+        ];
+      },
     );
   }
 
@@ -493,6 +532,43 @@ class _MyTasksPageState extends State<MyTasksPage> {
           Text(text, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: color)),
         ],
       ),
+    );
+  }
+}
+
+class _GroupBadge extends StatelessWidget {
+  final String groupId;
+  const _GroupBadge({required this.groupId});
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<DocumentSnapshot>(
+      future: FirebaseFirestore.instance.collection('groups').doc(groupId).get(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SizedBox.shrink();
+        final groupName = snapshot.data?['name'] ?? 'Nhóm';
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.groups_rounded, size: 12, color: Colors.black54),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  groupName,
+                  style: const TextStyle(color: Colors.black54, fontSize: 10, fontWeight: FontWeight.bold),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

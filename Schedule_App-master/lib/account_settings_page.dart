@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'theme_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'notification_service.dart';
+import 'user_service.dart';
 
 class AccountSettingsPage extends StatefulWidget {
   const AccountSettingsPage({super.key});
@@ -13,6 +15,9 @@ class AccountSettingsPage extends StatefulWidget {
 
 class _AccountSettingsPageState extends State<AccountSettingsPage> {
   bool _notificationsEnabled = true;
+  bool _hideBadges = false;
+  final UserService _userService = UserService();
+  final String _uid = FirebaseAuth.instance.currentUser?.uid ?? '';
 
   @override
   void initState() {
@@ -22,8 +27,11 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
 
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
+    final userData = await _userService.getUserData(_uid);
+    
     setState(() {
       _notificationsEnabled = prefs.getBool('notifications_enabled') ?? true;
+      _hideBadges = userData?['hideBadges'] ?? false;
     });
   }
 
@@ -36,6 +44,13 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
     if (!value) {
       await NotificationService().cancelAllNotifications();
     }
+  }
+
+  Future<void> _toggleHideBadges(bool value) async {
+    setState(() {
+      _hideBadges = value;
+    });
+    await _userService.updateHideBadgesStatus(_uid, value);
   }
 
   @override
@@ -74,6 +89,17 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
               onChanged: (value) {
                 themeProvider.toggleTheme();
               },
+              activeColor: Theme.of(context).primaryColor,
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildSettingTile(
+            title: "Ẩn danh hiệu",
+            subtitle: "Người khác sẽ không thấy danh hiệu bạn mở khóa",
+            icon: Icons.badge_outlined,
+            trailing: Switch(
+              value: _hideBadges,
+              onChanged: _toggleHideBadges,
               activeColor: Theme.of(context).primaryColor,
             ),
           ),
