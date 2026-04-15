@@ -30,6 +30,7 @@ class MyTasksPage extends StatefulWidget {
 
 class _MyTasksPageState extends State<MyTasksPage> {
   final TaskService _taskService = TaskService();
+  final UserService _userService = UserService();
   late DateTime selectedDate;
   late PageController _pageController;
   final int initialPage = 5000; 
@@ -81,6 +82,78 @@ class _MyTasksPageState extends State<MyTasksPage> {
 
   void _showTaskDetail(Task task) {
     Navigator.push(context, MaterialPageRoute(builder: (_) => TaskDetailPage(task: task)));
+  }
+
+  void _showAddMemberDialog(Task task) {
+    final TextEditingController emailController = TextEditingController();
+    bool isAdding = false;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: kCardColor,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: const Text("Thêm thành viên", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text("Nhập email của người bạn muốn thêm vào nhiệm vụ này.", style: TextStyle(color: Colors.white70, fontSize: 13)),
+              const SizedBox(height: 20),
+              Container(
+                decoration: BoxDecoration(color: const Color(0xFF1E293B), borderRadius: BorderRadius.circular(14)),
+                child: TextField(
+                  controller: emailController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(
+                    hintText: "Email...",
+                    hintStyle: TextStyle(color: Colors.white24),
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Hủy", style: TextStyle(color: Colors.grey))),
+            TextButton(
+              onPressed: isAdding ? null : () async {
+                final email = emailController.text.trim().toLowerCase();
+                if (email.isEmpty) return;
+
+                setDialogState(() => isAdding = true);
+                try {
+                  final userData = await _userService.getUserByEmail(email);
+                  if (userData == null) {
+                    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Không tìm thấy người dùng!")));
+                  } else {
+                    final uid = userData['uid'] as String;
+                    if (task.assignees.contains(uid)) {
+                      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Người dùng đã tham gia rồi!")));
+                    } else {
+                      List<String> newAssignees = List.from(task.assignees)..add(uid);
+                      await _taskService.updateTask(task.copyWith(assignees: newAssignees));
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Đã thêm thành viên!"), backgroundColor: Colors.green));
+                      }
+                    }
+                  }
+                } catch (e) {
+                  if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Lỗi khi thêm thành viên")));
+                } finally {
+                  setDialogState(() => isAdding = false);
+                }
+              },
+              child: isAdding 
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: kPriority2Color))
+                : const Text("Thêm", style: TextStyle(color: kPriority2Color, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -338,7 +411,12 @@ class _MyTasksPageState extends State<MyTasksPage> {
                       right: 12,
                       child: Row(
                         children: [
-                          UserAvatarStack(uids: task.assignees, size: 28, cardColor: cardColor),
+                          UserAvatarStack(
+                            uids: task.assignees, 
+                            size: 28, 
+                            cardColor: cardColor,
+                            onAddTap: () => _showAddMemberDialog(task),
+                          ),
                           const Spacer(),
                           Container(
                             width: 100, 
@@ -423,7 +501,8 @@ class UserAvatarStack extends StatelessWidget {
   final List<String> uids;
   final double size;
   final Color cardColor;
-  const UserAvatarStack({super.key, required this.uids, this.size = 24, required this.cardColor});
+  final VoidCallback onAddTap;
+  const UserAvatarStack({super.key, required this.uids, this.size = 24, required this.cardColor, required this.onAddTap});
 
   @override
   Widget build(BuildContext context) {
@@ -457,14 +536,17 @@ class UserAvatarStack extends StatelessWidget {
           else
             Positioned(
               left: displayCount * (size * 0.75),
-              child: Container(
-                width: size, height: size,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle, color: Colors.white.withOpacity(0.3),
-                  border: Border.all(color: Colors.white, width: 2),
+              child: GestureDetector(
+                onTap: onAddTap,
+                child: Container(
+                  width: size, height: size,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle, color: Colors.white.withOpacity(0.3),
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                  alignment: Alignment.center,
+                  child: const Icon(Icons.add, size: 14, color: Colors.white)
                 ),
-                alignment: Alignment.center,
-                child: const Icon(Icons.add, size: 14, color: Colors.white)
               ),
             ),
         ],

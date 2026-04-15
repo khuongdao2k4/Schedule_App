@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'task_model.dart';
 import 'task_service.dart';
+import 'user_service.dart';
 
 const kBackgroundColor = Color(0xFF0F172A);
 const kCardColor = Color(0xFF182235);
@@ -25,28 +27,51 @@ class EditTaskPage extends StatefulWidget {
 
 class _EditTaskPageState extends State<EditTaskPage> {
   final TaskService _taskService = TaskService();
+  final UserService _userService = UserService();
 
   late TextEditingController _titleController;
   late TextEditingController _descController;
+  final TextEditingController _emailController = TextEditingController();
 
   DateTime? _selectedDay;
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
   bool _isLoading = false;
 
+  final List<String> _assignees = [];
+  final String _currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+
   final List<IconData> taskIcons = [
-    Icons.work,
-    Icons.book,
-    Icons.code,
-    Icons.directions_run,
-    Icons.fitness_center,
-    Icons.restaurant,
-    Icons.movie,
-    Icons.shopping_cart,
-    Icons.local_cafe,
-    Icons.bed,
-    Icons.assignment,
-    Icons.flight,
+    Icons.work_rounded,
+    Icons.menu_book_rounded,
+    Icons.code_rounded,
+    Icons.terminal_rounded,
+    Icons.edit_note_rounded,
+    Icons.lightbulb_outline_rounded,
+    Icons.fitness_center_rounded,
+    Icons.directions_run_rounded,
+    Icons.self_improvement_rounded,
+    Icons.pool_rounded,
+    Icons.pedal_bike_rounded,
+    Icons.sports_soccer_rounded,
+    Icons.restaurant_rounded,
+    Icons.local_cafe_rounded,
+    Icons.celebration_rounded,
+    Icons.movie_filter_rounded,
+    Icons.videogame_asset_rounded,
+    Icons.music_note_rounded,
+    Icons.camera_alt_rounded,
+    Icons.home_rounded,
+    Icons.shopping_cart_rounded,
+    Icons.payments_rounded,
+    Icons.cleaning_services_rounded,
+    Icons.pets_rounded,
+    Icons.favorite_rounded,
+    Icons.alarm_rounded,
+    Icons.notifications_active_rounded,
+    Icons.flight_takeoff_rounded,
+    Icons.map_rounded,
+    Icons.assignment_rounded,
   ];
 
   late IconData _selectedIcon;
@@ -65,6 +90,7 @@ class _EditTaskPageState extends State<EditTaskPage> {
         ? TimeOfDay.fromDateTime(widget.task.endTime!)
         : null;
 
+    _assignees.addAll(widget.task.assignees);
     _selectedIcon = _getInitialIcon();
   }
 
@@ -75,29 +101,37 @@ class _EditTaskPageState extends State<EditTaskPage> {
           return icon;
         }
       }
+      return IconData(widget.task.iconCode!, fontFamily: 'MaterialIcons');
     }
-    return _guessIconFromTitle(widget.task.title);
+    return Icons.assignment_rounded;
   }
 
-  IconData _guessIconFromTitle(String title) {
-    final t = title.toLowerCase();
+  Future<void> _addUserByEmail() async {
+    final email = _emailController.text.trim().toLowerCase();
+    if (email.isEmpty) return;
 
-    if (t.contains('chạy') || t.contains('run') || t.contains('thể dục')) {
-      return Icons.directions_run;
+    setState(() => _isLoading = true);
+    try {
+      final userData = await _userService.getUserByEmail(email);
+      if (userData == null) {
+        _showMessage("Không tìm thấy người dùng với email này!");
+      } else {
+        final uid = userData['uid'] as String;
+        if (_assignees.contains(uid)) {
+          _showMessage("Người dùng này đã có trong danh sách!");
+        } else {
+          setState(() {
+            _assignees.add(uid);
+            _emailController.clear();
+          });
+          _showMessage("Đã thêm người tham gia!");
+        }
+      }
+    } catch (e) {
+      _showMessage("Lỗi khi tìm kiếm người dùng");
+    } finally {
+      setState(() => _isLoading = false);
     }
-    if (t.contains('gym') || t.contains('tập')) return Icons.fitness_center;
-    if (t.contains('học') || t.contains('study') || t.contains('bài')) {
-      return Icons.book;
-    }
-    if (t.contains('ngủ') || t.contains('sleep')) return Icons.bed;
-    if (t.contains('làm') || t.contains('work')) return Icons.work;
-    if (t.contains('ăn') || t.contains('uống')) return Icons.restaurant;
-    if (t.contains('code') || t.contains('lập trình')) return Icons.code;
-    if (t.contains('phim')) return Icons.movie;
-    if (t.contains('mua')) return Icons.shopping_cart;
-    if (t.contains('cafe')) return Icons.local_cafe;
-
-    return taskIcons.isNotEmpty ? taskIcons.first : Icons.assignment_outlined;
   }
 
   Future<void> _pickDate() async {
@@ -188,17 +222,14 @@ class _EditTaskPageState extends State<EditTaskPage> {
         return;
       }
 
-      final updatedTask = Task(
-        id: widget.task.id,
-        userId: widget.task.userId,
+      final updatedTask = widget.task.copyWith(
         title: title,
         description: description,
-        createdAt: widget.task.createdAt,
         dueDate: _selectedDay,
         startTime: start,
         endTime: end,
-        isDone: widget.task.isDone,
         iconCode: _selectedIcon.codePoint,
+        assignees: _assignees,
       );
 
       await _taskService.updateTask(updatedTask);
@@ -245,6 +276,7 @@ class _EditTaskPageState extends State<EditTaskPage> {
   void dispose() {
     _titleController.dispose();
     _descController.dispose();
+    _emailController.dispose();
     super.dispose();
   }
 
@@ -327,6 +359,11 @@ class _EditTaskPageState extends State<EditTaskPage> {
                       _buildSectionLabel("Biểu tượng"),
                       const SizedBox(height: 8),
                       _buildHorizontalIconPicker(),
+                      const SizedBox(height: 25),
+                      _buildSectionLabel("Thành viên thực hiện"),
+                      _buildAddMemberField(),
+                      const SizedBox(height: 15),
+                      _buildAssigneesList(),
                       const SizedBox(height: 28),
                     ],
                   ),
@@ -430,17 +467,10 @@ class _EditTaskPageState extends State<EditTaskPage> {
                 width: 1,
               ),
             ),
-            child: Hero(
-              tag: 'task_icon_${widget.task.id}',
-              transitionOnUserGestures: true,
-              child: Material(
-                color: Colors.transparent,
-                child: Icon(
-                  _selectedIcon,
-                  color: kAccentSoft,
-                  size: 30,
-                ),
-              ),
+            child: Icon(
+              _selectedIcon,
+              color: kAccentSoft,
+              size: 30,
             ),
           ),
           const SizedBox(height: 16),
@@ -533,6 +563,87 @@ class _EditTaskPageState extends State<EditTaskPage> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildAddMemberField() {
+    return Container(
+      decoration: BoxDecoration(
+        color: kInputColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: kGlowColor.withOpacity(0.1)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _emailController,
+              style: const TextStyle(color: Colors.white, fontSize: 14),
+              decoration: const InputDecoration(
+                hintText: "Nhập email người tham gia...",
+                hintStyle: TextStyle(color: Colors.white24),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(horizontal: 16),
+              ),
+              onSubmitted: (_) => _addUserByEmail(),
+            ),
+          ),
+          IconButton(
+            onPressed: _addUserByEmail,
+            icon: const Icon(Icons.person_add_alt_1_rounded, color: kGlowColor),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAssigneesList() {
+    if (_assignees.isEmpty) return const SizedBox.shrink();
+    return Column(
+      children: List.generate(_assignees.length, (index) {
+        final uid = _assignees[index];
+        bool isCreator = uid == widget.task.userId;
+        return FutureBuilder<Map<String, dynamic>?>(
+          future: _userService.getUserData(uid),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) return const SizedBox.shrink();
+            final userData = snapshot.data!;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: kCardColor,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withOpacity(0.05)),
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundImage: userData['photo'] != null ? NetworkImage(userData['photo']) : null,
+                    child: userData['photo'] == null ? const Icon(Icons.person, size: 20) : null,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(userData['name'] ?? 'Unknown', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                        Text(isCreator ? "Người tạo nhiệm vụ" : "Người tham gia", style: TextStyle(color: isCreator ? kAccentSoft : kTextSoft, fontSize: 11)),
+                      ],
+                    ),
+                  ),
+                  if (!isCreator)
+                    IconButton(
+                      icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent, size: 20),
+                      onPressed: () => setState(() => _assignees.remove(uid)),
+                    ),
+                ],
+              ),
+            );
+          },
+        );
+      }),
     );
   }
 
