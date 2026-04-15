@@ -325,7 +325,10 @@ class _MyTasksPageState extends State<MyTasksPage> {
     final user = FirebaseAuth.instance.currentUser;
     Color cardColor = index % 3 == 0 ? kPriority1Color : (index % 3 == 1 ? kPriority2Color : kPriority3Color);
     
-    bool isExpired = !task.isDone && task.endTime != null && now.isAfter(task.endTime!);
+    // Kiểm tra user hiện tại đã hoàn thành chưa
+    bool isUserDone = task.completedBy.contains(user?.uid);
+    
+    bool isExpired = !isUserDone && task.endTime != null && now.isAfter(task.endTime!);
     bool isStarted = task.startTime == null || now.isAfter(task.startTime!);
     
     // 🔥 Phân biệt rõ Creator và Member
@@ -335,16 +338,24 @@ class _MyTasksPageState extends State<MyTasksPage> {
     // Chỉ hiển thị là "Lời mời" nếu là thành viên nhưng KHÔNG PHẢI người tạo và CHƯA đồng ý
     bool showAsInvitation = !isCreator && !hasAccepted;
 
-    String status = task.isDone ? "Hoàn thành" : (isExpired ? "Hết hạn" : (isStarted ? "Đang chạy" : "Chưa tới giờ"));
+    String status = isUserDone ? "Hoàn thành" : (isExpired ? "Hết hạn" : (isStarted ? "Đang chạy" : "Chưa tới giờ"));
     if (showAsInvitation) status = "Lời mời";
 
     double progress = task.assignees.isEmpty ? (task.isDone ? 1.0 : 0.0) : (task.completedBy.length / task.assignees.length);
-    final IconData displayIcon = task.isDone ? Icons.check_circle_rounded : (task.iconCode != null ? IconData(task.iconCode!, fontFamily: 'MaterialIcons') : TaskIcons.getIconByTitle(task.title));
+    
+    IconData displayIcon;
+    if (isUserDone) {
+      displayIcon = Icons.check_circle_rounded;
+    } else if (task.iconCode != null) {
+      displayIcon = IconData(task.iconCode!, fontFamily: 'MaterialIcons');
+    } else {
+      displayIcon = TaskIcons.getIconByTitle(task.title);
+    }
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 30),
       child: Opacity(
-        opacity: (isExpired || showAsInvitation) ? 0.6 : 1.0,
+        opacity: (isExpired || showAsInvitation) && !isUserDone ? 0.6 : 1.0,
         child: IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -366,19 +377,19 @@ class _MyTasksPageState extends State<MyTasksPage> {
                       child: Container(
                         width: double.infinity, 
                         padding: const EdgeInsets.fromLTRB(16, 50, 12, 16),
-                        decoration: BoxDecoration(color: isExpired ? cardColor.withOpacity(0.4) : cardColor),
+                        decoration: BoxDecoration(color: (isExpired && !isUserDone) ? cardColor.withOpacity(0.4) : cardColor),
                         child: Row(
                           children: [
                             GestureDetector(
                               onTap: () {
                                 if (showAsInvitation) return;
-                                if (isExpired) {
+                                if (isExpired && !isUserDone) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(content: Text("Nhiệm vụ đã hết hạn, không thể hoàn thành!"), duration: Duration(seconds: 2))
                                   );
                                   return;
                                 }
-                                if (!isStarted) {
+                                if (!isStarted && !isUserDone) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(content: Text("Nhiệm vụ chưa tới thời gian bắt đầu!"), duration: Duration(seconds: 2))
                                   );
@@ -391,7 +402,7 @@ class _MyTasksPageState extends State<MyTasksPage> {
                                 child: Container(
                                   width: 50, height: 50, 
                                   decoration: BoxDecoration(color: theme.scaffoldBackgroundColor, borderRadius: BorderRadius.circular(14)), 
-                                  child: Transform.rotate(angle: -0.785, child: Center(child: Icon(displayIcon, color: task.isDone ? kPriority1Color : (isExpired ? Colors.red.withOpacity(0.5) : (isStarted ? cardColor : Colors.white24)), size: 26)))
+                                  child: Transform.rotate(angle: -0.785, child: Center(child: Icon(displayIcon, color: isUserDone ? kPriority1Color : (isExpired ? Colors.red.withOpacity(0.5) : (isStarted ? cardColor : Colors.white24)), size: 26)))
                                 )
                               ),
                             ),
@@ -414,7 +425,7 @@ class _MyTasksPageState extends State<MyTasksPage> {
                                 ),
                               )
                             ),
-                            _buildModernPopupMenu(task, theme, isExpired, showAsInvitation),
+                            _buildModernPopupMenu(task, theme, isExpired, showAsInvitation, isUserDone),
                           ],
                         ),
                       ),
@@ -474,7 +485,7 @@ class _MyTasksPageState extends State<MyTasksPage> {
     );
   }
 
-  Widget _buildModernPopupMenu(Task task, ThemeData theme, bool isExpired, bool showAsInvitation) {
+  Widget _buildModernPopupMenu(Task task, ThemeData theme, bool isExpired, bool showAsInvitation, bool isUserDone) {
     final user = FirebaseAuth.instance.currentUser;
     return PopupMenuButton<String>(
       icon: const Icon(Icons.more_vert, color: Colors.black45),
@@ -492,7 +503,7 @@ class _MyTasksPageState extends State<MyTasksPage> {
             await _taskService.rejectTask(task.id!, user.uid);
           }
         } else if (val == 'edit') {
-          if (isExpired) {
+          if (isExpired && !isUserDone) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text("Nhiệm vụ đã hết hạn, không thể sửa!"), duration: Duration(seconds: 2))
             );
@@ -514,7 +525,7 @@ class _MyTasksPageState extends State<MyTasksPage> {
         // 🔥 Ngược lại hiển thị menu quản lý bình thường
         return [
           _buildPopupItem('detail', Icons.info_outline_rounded, "Chi tiết", Colors.white70),
-          _buildPopupItem('edit', Icons.edit_outlined, "Sửa nhiệm vụ", isExpired ? Colors.grey : Colors.white70),
+          _buildPopupItem('edit', Icons.edit_outlined, "Sửa nhiệm vụ", (isExpired && !isUserDone) ? Colors.grey : Colors.white70),
           const PopupMenuDivider(height: 1),
           _buildPopupItem('delete', Icons.delete_outline_rounded, "Xóa", Colors.redAccent),
         ];
@@ -677,6 +688,7 @@ class DashedLinePainter extends CustomPainter {
       startY += dashHeight + dashSpace;
     }
   }
+
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

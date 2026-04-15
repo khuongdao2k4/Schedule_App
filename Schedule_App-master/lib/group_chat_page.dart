@@ -105,14 +105,14 @@ class _GroupChatPageState extends State<GroupChatPage> {
 
                 return ListView.builder(
                   reverse: true,
-                  padding: const EdgeInsets.all(15),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
                   itemCount: tasks.length,
                   itemBuilder: (context, index) {
                     final task = tasks[index];
                     return _TaskMessageItem(
                       task: task,
                       isOwner: isOwner,
-                      isMine: task.proposedBy == currentUser?.uid || task.userId == currentUser?.uid,
+                      isMine: task.proposedBy == currentUser?.uid || (task.proposedBy == null && task.userId == currentUser?.uid),
                     );
                   },
                 );
@@ -178,151 +178,281 @@ class _TaskMessageItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     bool isPending = task.status == 'pending';
-    bool isDeclined = task.status == 'declined';
     
     final timeFormat = DateFormat('HH:mm');
-    final timeStr = "${task.startTime != null ? timeFormat.format(task.startTime!) : '--:--'} - ${task.endTime != null ? timeFormat.format(task.endTime!) : '--:--'}";
+    final creationTimeStr = timeFormat.format(task.createdAt);
+    final taskTimeStr = "${task.startTime != null ? timeFormat.format(task.startTime!) : '--:--'} - ${task.endTime != null ? timeFormat.format(task.endTime!) : '--:--'}";
     
     double progress = task.assignees.isEmpty ? 0 : (task.completedBy.length / task.assignees.length);
     IconData taskIcon = task.iconCode != null ? IconData(task.iconCode!, fontFamily: 'MaterialIcons') : Icons.assignment_outlined;
 
-    return Align(
-      alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 20),
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.85),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isMine ? const Color(0xFF2D3B55) : kCardColor,
-          borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(20),
-            topRight: const Radius.circular(20),
-            bottomLeft: Radius.circular(isMine ? 20 : 0),
-            bottomRight: Radius.circular(isMine ? 0 : 20),
-          ),
-          border: isPending ? Border.all(color: Colors.orangeAccent.withOpacity(0.5), width: 1) : null,
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4))],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header: Sender Name
-            if (!isMine)
-              FutureBuilder<Map<String, dynamic>?>(
-                future: UserService().getUserData(task.proposedBy ?? task.userId),
-                builder: (context, snapshot) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: Text(
-                      snapshot.data?['name'] ?? "Thành viên",
-                      style: const TextStyle(color: kPriority2Color, fontSize: 12, fontWeight: FontWeight.bold),
-                    ),
-                  );
-                },
-              ),
-            
-            // Task Content
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(12)),
-                  child: Icon(taskIcon, color: kPriority1Color, size: 24),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(task.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                      Text(timeStr, style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 11)),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      child: Column(
+        crossAxisAlignment: isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [
+          // Header: Avatar, Name, and Creation Time
+          FutureBuilder<Map<String, dynamic>?>(
+            future: UserService().getUserData(task.proposedBy ?? task.userId),
+            builder: (context, snapshot) {
+              final userData = snapshot.data;
+              final name = userData?['name'] ?? "Thành viên";
+              final photoUrl = userData?['photo'];
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (!isMine) ...[
+                      CircleAvatar(
+                        radius: 12,
+                        backgroundColor: Colors.white10,
+                        backgroundImage: (photoUrl != null && photoUrl.toString().startsWith('http')) ? NetworkImage(photoUrl) : null,
+                        child: (photoUrl == null || !photoUrl.toString().startsWith('http')) ? const Icon(Icons.person, size: 12, color: Colors.white54) : null,
+                      ),
+                      const SizedBox(width: 8),
                     ],
-                  ),
+                    Text(
+                      isMine ? "Bạn" : name,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.7),
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      " • $creationTimeStr",
+                      style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 11),
+                    ),
+                    if (isMine) ...[
+                      const SizedBox(width: 8),
+                      CircleAvatar(
+                        radius: 12,
+                        backgroundColor: Colors.white10,
+                        backgroundImage: (photoUrl != null && photoUrl.toString().startsWith('http')) ? NetworkImage(photoUrl) : null,
+                        child: (photoUrl == null || !photoUrl.toString().startsWith('http')) ? const Icon(Icons.person, size: 12, color: Colors.white54) : null,
+                      ),
+                    ],
+                  ],
                 ),
-                _StatusBadge(status: task.status),
+              );
+            },
+          ),
+
+          // Task Card
+          Container(
+            constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.9),
+            decoration: BoxDecoration(
+              color: isMine ? const Color(0xFF2D3B55) : kCardColor,
+              borderRadius: BorderRadius.circular(24),
+              border: isPending 
+                  ? Border.all(color: Colors.orangeAccent.withOpacity(0.4), width: 1.5) 
+                  : Border.all(color: Colors.white.withOpacity(0.05), width: 1),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.15),
+                  blurRadius: 12,
+                  offset: const Offset(0, 6),
+                )
               ],
             ),
-            
-            if (task.description.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Text(
-                  task.description,
-                  style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13, height: 1.4),
-                  maxLines: 2, overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            
-            const SizedBox(height: 16),
-            
-            // Progress & Members
-            Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
+                // Upper Section: Icon, Title, Status
+                Padding(
+                  padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text("Tiến độ", style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 10)),
-                          Text("${(progress * 100).toInt()}%", style: const TextStyle(color: kPriority1Color, fontSize: 10, fontWeight: FontWeight.bold)),
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: kPriority1Color.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Icon(taskIcon, color: kPriority1Color, size: 22),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  task.title,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Icon(Icons.access_time, size: 12, color: Colors.white.withOpacity(0.4)),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      taskTimeStr,
+                                      style: TextStyle(
+                                        color: Colors.white.withOpacity(0.4),
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          _StatusBadge(status: task.status),
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: LinearProgressIndicator(
-                          value: progress, minHeight: 4,
-                          backgroundColor: Colors.white.withOpacity(0.05),
-                          valueColor: const AlwaysStoppedAnimation<Color>(kPriority1Color),
+                      if (task.description.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          task.description,
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.6),
+                            fontSize: 13,
+                            height: 1.4,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
+                      ],
+                    ],
+                  ),
+                ),
+
+                // Lower Section: Progress and Assignees
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.1),
+                    borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  "Tiến độ",
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.4),
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                Text(
+                                  "${(progress * 100).toInt()}%",
+                                  style: const TextStyle(
+                                    color: kPriority1Color,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: LinearProgressIndicator(
+                                value: progress,
+                                minHeight: 4,
+                                backgroundColor: Colors.white.withOpacity(0.05),
+                                valueColor: const AlwaysStoppedAnimation<Color>(kPriority1Color),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      UserAvatarStack(uids: task.assignees, size: 28),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => TaskDetailPage(task: task)),
+                        ),
+                        icon: const Icon(Icons.arrow_forward_ios, size: 14, color: kPriority2Color),
+                        constraints: const BoxConstraints(),
+                        padding: EdgeInsets.zero,
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 15),
-                UserAvatarStack(uids: task.assignees, size: 24),
               ],
             ),
+          ),
 
-            const SizedBox(height: 12),
-            
-            // Actions
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TaskDetailPage(task: task))),
-                  style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(50, 30)),
-                  child: const Text("XEM CHI TIẾT", style: TextStyle(color: kPriority2Color, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
-                ),
-              ],
-            ),
-
-            if (isPending && isOwner) ...[
-              const Divider(color: Colors.white10, height: 20),
-              Row(
+          // Owner Actions for Pending Tasks
+          if (isPending && isOwner)
+            Padding(
+              padding: const EdgeInsets.only(top: 12, right: 4, left: 4),
+              child: Row(
+                mainAxisAlignment: isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => GroupService().declineTask(task.id!),
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent.withOpacity(0.1), foregroundColor: Colors.redAccent, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-                      child: const Text("Từ chối", style: TextStyle(fontSize: 12)),
-                    ),
+                  _ActionButton(
+                    label: "Từ chối",
+                    color: Colors.redAccent,
+                    onPressed: () => GroupService().declineTask(task.id!),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => GroupService().approveTask(task.id!),
-                      style: ElevatedButton.styleFrom(backgroundColor: kPriority1Color, foregroundColor: Colors.black, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-                      child: const Text("Duyệt", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                    ),
+                  const SizedBox(width: 12),
+                  _ActionButton(
+                    label: "Duyệt ngay",
+                    color: kPriority1Color,
+                    isPrimary: true,
+                    onPressed: () => GroupService().approveTask(task.id!),
                   ),
                 ],
               ),
-            ],
-          ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  final String label;
+  final Color color;
+  final VoidCallback onPressed;
+  final bool isPrimary;
+
+  const _ActionButton({
+    required this.label,
+    required this.color,
+    required this.onPressed,
+    this.isPrimary = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isPrimary ? color : color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: isPrimary ? null : Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isPrimary ? Colors.black : color,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );

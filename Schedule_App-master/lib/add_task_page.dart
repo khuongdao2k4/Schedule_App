@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'task_model.dart';
 import 'task_service.dart';
@@ -75,6 +76,29 @@ class _AddTaskPageState extends State<AddTaskPage> {
     }
     if (widget.groupId != null) {
       _selectedCategory = 'Work';
+      _loadGroupMembers();
+    }
+  }
+
+  Future<void> _loadGroupMembers() async {
+    if (widget.groupId == null) return;
+    setState(() => _isLoading = true);
+    try {
+      final groupDoc = await FirebaseFirestore.instance.collection('groups').doc(widget.groupId).get();
+      if (groupDoc.exists) {
+        final List<String> members = List<String>.from(groupDoc.data()?['members'] ?? []);
+        setState(() {
+          for (var uid in members) {
+            if (!_assignees.contains(uid)) {
+              _assignees.add(uid);
+            }
+          }
+        });
+      }
+    } catch (e) {
+      print("Error loading group members: $e");
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 

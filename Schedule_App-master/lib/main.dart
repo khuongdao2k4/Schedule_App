@@ -441,8 +441,8 @@ class _HomePageState extends State<HomePage> {
               if (a.isDone != b.isDone) return a.isDone ? 1 : -1;
               return a.startTime?.compareTo(b.startTime ?? DateTime.now()) ?? 0;
             });
-            final todoCount = allTasks.where((t) => !t.isDone).length;
-            final doneCount = allTasks.where((t) => t.isDone).length;
+            final todoCount = allTasks.where((t) => !t.completedBy.contains(user?.uid)).length;
+            final doneCount = allTasks.where((t) => t.completedBy.contains(user?.uid)).length;
 
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -545,16 +545,22 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildTaskItem(Task task) {
+    final user = FirebaseAuth.instance.currentUser;
     final now = DateTime.now();
-    bool isExpired = !task.isDone && task.endTime != null && now.isAfter(task.endTime!);
+    
+    // Kiểm tra user hiện tại đã hoàn thành chưa
+    bool isUserDone = task.completedBy.contains(user?.uid);
+    bool isCreator = user != null && task.userId == user.uid;
+    
+    bool isExpired = !isUserDone && task.endTime != null && now.isAfter(task.endTime!);
     bool isStarted = task.startTime == null || now.isAfter(task.startTime!);
-    String status = task.isDone ? "Hoàn thành" : (isExpired ? "Hết hạn" : (isStarted ? "Đang chạy" : "Chưa tới giờ"));
+    String status = isUserDone ? "Hoàn thành" : (isExpired ? "Hết hạn" : (isStarted ? "Đang chạy" : "Chưa tới giờ"));
     
     // Tiến độ dựa trên số người hoàn thành
     double progress = task.assignees.isEmpty ? (task.isDone ? 1.0 : 0.0) : (task.completedBy.length / task.assignees.length);
     
     IconData taskIcon;
-    if (task.isDone) {
+    if (isUserDone) {
       taskIcon = Icons.check_circle_rounded;
     } else if (task.iconCode != null) {
       taskIcon = IconData(task.iconCode!, fontFamily: 'MaterialIcons');
@@ -568,6 +574,12 @@ class _HomePageState extends State<HomePage> {
         key: Key(task.id ?? task.title),
         direction: DismissDirection.endToStart,
         confirmDismiss: (direction) async {
+          if (!isCreator) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Chỉ người tạo nhiệm vụ mới có quyền xóa!"))
+            );
+            return false;
+          }
           return await showDialog(
             context: context,
             builder: (context) => AlertDialog(
@@ -593,13 +605,13 @@ class _HomePageState extends State<HomePage> {
           child: const Icon(Icons.delete_outline, color: Colors.white, size: 30),
         ),
         child: Opacity(
-          opacity: isExpired ? 0.6 : 1.0,
+          opacity: (isExpired && !isUserDone) ? 0.6 : 1.0,
           child: ClipPath(
             clipper: TaskCardClipper(),
             child: Container(
               padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
               decoration: BoxDecoration(
-                color: isExpired ? kCardColor.withOpacity(0.5) : kCardColor,
+                color: (isExpired && !isUserDone) ? kCardColor.withOpacity(0.5) : kCardColor,
                 boxShadow: [
                   BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 5)),
                 ],
@@ -611,13 +623,13 @@ class _HomePageState extends State<HomePage> {
                     children: [
                       GestureDetector(
                         onTap: () {
-                          if (isExpired) {
+                          if (isExpired && !isUserDone) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text("Nhiệm vụ đã hết hạn, không thể hoàn thành!"), duration: Duration(seconds: 2))
                             );
                             return;
                           }
-                          if (!isStarted) {
+                          if (!isStarted && !isUserDone) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text("Nhiệm vụ chưa tới thời gian bắt đầu!"), duration: Duration(seconds: 2))
                             );
@@ -635,13 +647,13 @@ class _HomePageState extends State<HomePage> {
                                 child: Container(
                                   width: 40, height: 40,
                                   decoration: BoxDecoration(
-                                    color: task.isDone ? kPriority1Color.withOpacity(0.2) : kBackgroundColor,
+                                    color: isUserDone ? kPriority1Color.withOpacity(0.2) : kBackgroundColor,
                                     borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: task.isDone ? kPriority1Color : (isStarted ? Colors.white10 : Colors.white.withOpacity(0.05)), width: 1),
+                                    border: Border.all(color: isUserDone ? kPriority1Color : (isStarted ? Colors.white10 : Colors.white.withOpacity(0.05)), width: 1),
                                   ),
                                 ),
                               ),
-                              Icon(taskIcon, color: task.isDone ? kPriority1Color : (isStarted && !isExpired ? kPriority2Color : Colors.white24), size: 24),
+                              Icon(taskIcon, color: isUserDone ? kPriority1Color : (isStarted && !isExpired ? kPriority2Color : Colors.white24), size: 24),
                             ],
                           ),
                         ),
@@ -664,7 +676,7 @@ class _HomePageState extends State<HomePage> {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                                     decoration: BoxDecoration(
-                                      color: task.isDone ? kPriority1Color : (isExpired ? Colors.redAccent : (isStarted ? kPriority2Color : Colors.grey)),
+                                      color: isUserDone ? kPriority1Color : (isExpired ? Colors.redAccent : (isStarted ? kPriority2Color : Colors.grey)),
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: Text(
@@ -706,7 +718,7 @@ class _HomePageState extends State<HomePage> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           onSelected: (value) {
                             if (value == 'edit') {
-                              if (isExpired) {
+                              if (isExpired && !isUserDone) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(content: Text("Nhiệm vụ đã hết hạn, không thể sửa!"), duration: Duration(seconds: 2))
                                 );
@@ -719,12 +731,20 @@ class _HomePageState extends State<HomePage> {
                               Navigator.push(context, MaterialPageRoute(builder: (_) => TaskDetailPage(task: task)));
                             }
                           },
-                          itemBuilder: (context) => [
-                            _buildPopupItem('detail', Icons.info_outline, "Chi tiết", Colors.white70),
-                            _buildPopupItem('edit', Icons.edit_outlined, "Sửa", isExpired ? Colors.grey : Colors.white70),
-                            const PopupMenuDivider(height: 1),
-                            _buildPopupItem('delete', Icons.delete_outline, "Xóa", Colors.redAccent.withOpacity(0.8)),
-                          ],
+                          itemBuilder: (context) {
+                            List<PopupMenuEntry<String>> items = [
+                              _buildPopupItem('detail', Icons.info_outline, "Chi tiết", Colors.white70),
+                            ];
+                            
+                            // Chỉ thêm menu Sửa và Xóa nếu là người tạo task
+                            if (isCreator) {
+                              items.add(_buildPopupItem('edit', Icons.edit_outlined, "Sửa", (isExpired && !isUserDone) ? Colors.grey : Colors.white70));
+                              items.add(const PopupMenuDivider(height: 1));
+                              items.add(_buildPopupItem('delete', Icons.delete_outline, "Xóa", Colors.redAccent.withOpacity(0.8)));
+                            }
+                            
+                            return items;
+                          },
                         ),
                       ),
                     ],

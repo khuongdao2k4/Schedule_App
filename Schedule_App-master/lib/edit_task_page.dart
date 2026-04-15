@@ -92,6 +92,35 @@ class _EditTaskPageState extends State<EditTaskPage> {
 
     _assignees.addAll(widget.task.assignees);
     _selectedIcon = _getInitialIcon();
+    
+    // Kiểm tra quyền sửa ngay khi vào trang
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.task.userId != _currentUserId) {
+        _showNoPermissionDialog();
+      }
+    });
+  }
+
+  void _showNoPermissionDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: kCardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text("Không có quyền", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: const Text("Chỉ người tạo nhiệm vụ mới có quyền chỉnh sửa thông tin này.", style: TextStyle(color: Colors.white70)),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Đóng dialog
+              Navigator.pop(context); // Quay lại trang trước
+            },
+            child: const Text("Đồng ý", style: TextStyle(color: kGlowColor, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
   }
 
   IconData _getInitialIcon() {
@@ -171,6 +200,12 @@ class _EditTaskPageState extends State<EditTaskPage> {
 
   Future<void> _saveTask() async {
     if (_isLoading) return;
+    
+    // Kiểm tra quyền lần cuối trước khi lưu
+    if (widget.task.userId != _currentUserId) {
+      _showMessage("Bạn không có quyền sửa task này!");
+      return;
+    }
 
     final title = _titleController.text.trim();
     final description = _descController.text.trim();
@@ -282,6 +317,11 @@ class _EditTaskPageState extends State<EditTaskPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Nếu không phải chủ sở hữu, trả về Scaffold trống hoặc đang tải trong khi chờ dialog hiện lên
+    if (widget.task.userId != _currentUserId) {
+      return const Scaffold(backgroundColor: kBackgroundColor, body: Center(child: CircularProgressIndicator()));
+    }
+
     return Scaffold(
       backgroundColor: kBackgroundColor,
       body: Container(

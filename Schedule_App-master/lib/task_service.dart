@@ -71,7 +71,11 @@ class TaskService {
           .toList();
 
       tasks.sort((a, b) {
-        if (a.isDone != b.isDone) return a.isDone ? 1 : -1;
+        // Ưu tiên sắp xếp theo trạng thái hoàn thành CỦA CÁ NHÂN
+        bool aUserDone = a.completedBy.contains(userId);
+        bool bUserDone = b.completedBy.contains(userId);
+        
+        if (aUserDone != bUserDone) return aUserDone ? 1 : -1;
         if (a.dueDate == null && b.dueDate == null) return 0;
         if (a.dueDate == null) return 1;
         if (b.dueDate == null) return -1;
@@ -95,13 +99,17 @@ class TaskService {
       newCompletedBy.add(currentUid);
     }
 
-    bool allCompleted = newCompletedBy.length >= (task.assignees.isEmpty ? 1 : task.assignees.length);
+    // Task coi là hoàn thành tổng thể khi TẤT CẢ assignees đã tích xong
+    // Nếu assignees trống (không bao giờ xảy ra do model), coi như 1 người
+    int totalNeeded = task.assignees.isEmpty ? 1 : task.assignees.length;
+    bool allCompleted = newCompletedBy.length >= totalNeeded;
 
     await _db.collection('tasks').doc(task.id).update({
       'completedBy': newCompletedBy,
       'isDone': allCompleted,
     });
     
+    // Nếu cả task hoàn thành thì hủy thông báo, ngược lại nếu có người chưa xong thì vẫn giữ/đặt lại
     if (allCompleted) {
       await _notificationService.cancelTaskNotifications(task.id!);
     } else {
