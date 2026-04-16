@@ -551,10 +551,15 @@ class _HomePageState extends State<HomePage> {
     // Kiểm tra user hiện tại đã hoàn thành chưa
     bool isUserDone = task.completedBy.contains(user?.uid);
     bool isCreator = user != null && task.userId == user.uid;
+    bool hasAccepted = user != null && task.acceptedBy.contains(user.uid);
     
+    // 🔥 Chỉ hiển thị là "Lời mời" nếu là thành viên nhưng KHÔNG PHẢI người tạo và CHƯA đồng ý
+    bool showAsInvitation = !isCreator && !hasAccepted;
+
     bool isExpired = !isUserDone && task.endTime != null && now.isAfter(task.endTime!);
     bool isStarted = task.startTime == null || now.isAfter(task.startTime!);
     String status = isUserDone ? "Hoàn thành" : (isExpired ? "Hết hạn" : (isStarted ? "Đang chạy" : "Chưa tới giờ"));
+    if (showAsInvitation) status = "Lời mời";
     
     // Tiến độ dựa trên số người hoàn thành
     double progress = task.assignees.isEmpty ? (task.isDone ? 1.0 : 0.0) : (task.completedBy.length / task.assignees.length);
@@ -605,7 +610,7 @@ class _HomePageState extends State<HomePage> {
           child: const Icon(Icons.delete_outline, color: Colors.white, size: 30),
         ),
         child: Opacity(
-          opacity: (isExpired && !isUserDone) ? 0.6 : 1.0,
+          opacity: (isExpired || showAsInvitation) && !isUserDone ? 0.6 : 1.0,
           child: ClipPath(
             clipper: TaskCardClipper(),
             child: Container(
@@ -623,6 +628,7 @@ class _HomePageState extends State<HomePage> {
                     children: [
                       GestureDetector(
                         onTap: () {
+                          if (showAsInvitation) return;
                           if (isExpired && !isUserDone) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text("Nhiệm vụ đã hết hạn, không thể hoàn thành!"), duration: Duration(seconds: 2))
@@ -661,7 +667,7 @@ class _HomePageState extends State<HomePage> {
                       const SizedBox(width: 15),
                       Expanded(
                         child: GestureDetector(
-                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TaskDetailPage(task: task))),
+                          onTap: () => !showAsInvitation ? Navigator.push(context, MaterialPageRoute(builder: (_) => TaskDetailPage(task: task))) : null,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -676,7 +682,7 @@ class _HomePageState extends State<HomePage> {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                                     decoration: BoxDecoration(
-                                      color: isUserDone ? kPriority1Color : (isExpired ? Colors.redAccent : (isStarted ? kPriority2Color : Colors.grey)),
+                                      color: isUserDone ? kPriority1Color : (isExpired ? Colors.redAccent : (showAsInvitation ? Colors.amber : (isStarted ? kPriority2Color : Colors.grey))),
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: Text(
@@ -716,8 +722,16 @@ class _HomePageState extends State<HomePage> {
                           elevation: 10,
                           offset: const Offset(0, 40),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          onSelected: (value) {
-                            if (value == 'edit') {
+                          onSelected: (value) async {
+                            if (value == 'accept') {
+                              if (user != null && task.id != null) {
+                                await _taskService.acceptTask(task.id!, user.uid);
+                              }
+                            } else if (value == 'reject') {
+                              if (user != null && task.id != null) {
+                                await _taskService.rejectTask(task.id!, user.uid);
+                              }
+                            } else if (value == 'edit') {
                               if (isExpired && !isUserDone) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(content: Text("Nhiệm vụ đã hết hạn, không thể sửa!"), duration: Duration(seconds: 2))
@@ -732,6 +746,13 @@ class _HomePageState extends State<HomePage> {
                             }
                           },
                           itemBuilder: (context) {
+                            if (showAsInvitation) {
+                              return [
+                                _buildPopupItem('accept', Icons.check_circle_outline, "Đồng ý", Colors.greenAccent),
+                                _buildPopupItem('reject', Icons.cancel_outlined, "Từ chối", Colors.redAccent),
+                              ];
+                            }
+
                             List<PopupMenuEntry<String>> items = [
                               _buildPopupItem('detail', Icons.info_outline, "Chi tiết", Colors.white70),
                             ];
