@@ -5,9 +5,10 @@ import 'task_service.dart';
 import 'task_model.dart';
 import 'auth_service.dart';
 import 'user_service.dart';
-import 'activity_history_page.dart';
+import 'activity_history_page.dart' hide kBackgroundColor, kCardColor;
 import 'account_settings_page.dart';
 import 'badges_page.dart';
+import 'main.dart'; // Sử dụng kBackgroundColor, kCardColor từ đây
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -22,22 +23,67 @@ class ProfilePage extends StatelessWidget {
     return "Tân thủ tiềm năng";
   }
 
+  Future<void> _handleLogout(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: kCardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Text("Xác nhận đăng xuất", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: Text("Bạn có chắc chắn muốn rời khỏi hệ thống không?", style: TextStyle(color: Colors.white.withOpacity(0.7))),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false), 
+            child: const Text("Hủy", style: TextStyle(color: Colors.white54))
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
+            ),
+            child: const Text("Đăng xuất", style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await AuthService().signOut();
+        if (!context.mounted) return;
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginPage()),
+          (route) => false,
+        );
+      } catch (e) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Đăng xuất thất bại: $e'), backgroundColor: Colors.redAccent),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
     final TaskService taskService = TaskService();
     final UserService userService = UserService();
-    final theme = Theme.of(context);
 
     return Scaffold(
+      backgroundColor: kBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: theme.brightness == Brightness.dark ? Colors.white : Colors.black, size: 20),
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text("Hồ sơ cá nhân", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text("Hồ sơ cá nhân", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
         centerTitle: true,
       ),
       body: StreamBuilder<List<Task>>(
@@ -71,7 +117,7 @@ class ProfilePage extends StatelessWidget {
                     const SizedBox(height: 40),
                     Text(
                       "Tham gia từ: ${user?.metadata.creationTime != null ? DateFormat('dd/MM/yyyy').format(user!.metadata.creationTime!) : '--/--/----'}",
-                      style: const TextStyle(color: Colors.grey, fontSize: 13),
+                      style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 13),
                     ),
                     const SizedBox(height: 20),
                   ],
@@ -85,10 +131,8 @@ class ProfilePage extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context, User? user, String? selectedBadge, List<Task> tasks) {
-    final accentColor = Theme.of(context).primaryColor;
-    
     // Tìm màu cho badge nếu là badge hệ thống đã chọn
-    Color badgeColor = accentColor;
+    Color badgeColor = kPriority1Color;
     String displayRank = selectedBadge ?? _getDefaultRank(tasks);
     
     // Mapping màu sắc cơ bản cho các danh hiệu phổ biến
@@ -100,7 +144,7 @@ class ProfilePage extends StatelessWidget {
     else if (displayRank.contains("Điều phối")) badgeColor = Colors.purpleAccent;
     else if (displayRank.contains("Chuyên gia")) badgeColor = Colors.teal;
     else if (displayRank.contains("Chiến binh")) badgeColor = Colors.green;
-    else badgeColor = Colors.blueGrey;
+    else badgeColor = kPriority1Color;
 
     return Column(
       children: [
@@ -108,19 +152,22 @@ class ProfilePage extends StatelessWidget {
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            border: Border.all(color: accentColor, width: 2.5),
+            border: Border.all(color: kPriority1Color, width: 2),
+            boxShadow: [
+              BoxShadow(color: kPriority1Color.withOpacity(0.2), blurRadius: 20, spreadRadius: -5)
+            ]
           ),
           child: CircleAvatar(
             radius: 55,
-            backgroundColor: Theme.of(context).cardColor,
+            backgroundColor: kCardColor,
             backgroundImage: user?.photoURL != null ? NetworkImage(user!.photoURL!) : null,
-            child: user?.photoURL == null ? Icon(Icons.person, size: 50, color: accentColor) : null,
+            child: user?.photoURL == null ? const Icon(Icons.person, size: 50, color: Colors.white24) : null,
           ),
         ),
         const SizedBox(height: 16),
         Text(
           user?.displayName ?? "Người dùng",
-          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
         ),
         const SizedBox(height: 10),
         Container(
@@ -148,9 +195,9 @@ class ProfilePage extends StatelessWidget {
 
   Widget _buildStatsRow(BuildContext context, int total, int done) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(vertical: 20),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
+        color: kCardColor.withOpacity(0.5),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: Colors.white.withOpacity(0.05)),
       ),
@@ -170,20 +217,21 @@ class ProfilePage extends StatelessWidget {
   Widget _statItem(BuildContext context, String label, String value) {
     return Column(
       children: [
-        Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
         const SizedBox(height: 4),
-        Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+        Text(label, style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.4))),
       ],
     );
   }
 
-  Widget _verticalDivider() => Container(width: 1, height: 30, color: Colors.white.withOpacity(0.1));
+  Widget _verticalDivider() => Container(width: 1, height: 30, color: Colors.white.withOpacity(0.05));
 
   Widget _buildMenuCard(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
+        color: kCardColor.withOpacity(0.5),
         borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
       ),
       child: Column(
         children: [
@@ -199,19 +247,13 @@ class ProfilePage extends StatelessWidget {
             Navigator.push(context, MaterialPageRoute(builder: (_) => const AccountSettingsPage()));
           }),
           _divider(),
-          _menuTile(context, Icons.logout_rounded, "Đăng xuất", () async {
-            await AuthService().signOut();
-            if (context.mounted) {
-              Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
-            }
-          }, isDanger: true),
+          _menuTile(context, Icons.logout_rounded, "Đăng xuất", () => _handleLogout(context), isDanger: true),
         ],
       ),
     );
   }
 
   Widget _menuTile(BuildContext context, IconData icon, String title, VoidCallback onTap, {bool isDanger = false}) {
-    final accentColor = Theme.of(context).primaryColor;
     return ListTile(
       leading: Container(
         padding: const EdgeInsets.all(8),
@@ -219,13 +261,20 @@ class ProfilePage extends StatelessWidget {
           color: isDanger ? Colors.redAccent.withOpacity(0.1) : Colors.white.withOpacity(0.05),
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Icon(icon, color: isDanger ? Colors.redAccent : accentColor, size: 20),
+        child: Icon(icon, color: isDanger ? Colors.redAccent : kPriority1Color, size: 20),
       ),
-      title: Text(title, style: TextStyle(color: isDanger ? Colors.redAccent : null, fontSize: 15, fontWeight: FontWeight.w500)),
-      trailing: const Icon(Icons.chevron_right, color: Colors.grey, size: 18),
+      title: Text(
+        title, 
+        style: TextStyle(
+          color: isDanger ? Colors.redAccent : Colors.white.withOpacity(0.8), 
+          fontSize: 15, 
+          fontWeight: FontWeight.w500
+        )
+      ),
+      trailing: Icon(Icons.chevron_right_rounded, color: Colors.white.withOpacity(0.2), size: 18),
       onTap: onTap,
     );
   }
 
-  Widget _divider() => const Divider(height: 1, color: Colors.white10, indent: 60, endIndent: 20);
+  Widget _divider() => Divider(height: 1, color: Colors.white.withOpacity(0.05), indent: 56, endIndent: 16);
 }
