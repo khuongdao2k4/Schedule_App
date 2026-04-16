@@ -140,17 +140,6 @@ class SettingsPage extends StatelessWidget {
                 ),
                 _buildMenuTile(
                   context,
-                  icon: Icons.auto_graph_rounded,
-                  iconColor: kPriority2Color,
-                  title: "Thống kê",
-                  subtitle: "Xem báo cáo hiệu suất công việc",
-                  onTap: () {
-                    Navigator.pop(context);
-                    // Giả sử có page StatisticsPage
-                  },
-                ),
-                _buildMenuTile(
-                  context,
                   icon: Icons.info_rounded,
                   iconColor: kPriority3Color,
                   title: "About",

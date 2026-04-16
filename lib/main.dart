@@ -401,7 +401,7 @@ class _HomePageState extends State<HomePage> {
       drawer: const SettingsPage(),
       appBar: AppBar(
         backgroundColor: Colors.transparent, elevation: 0,
-        leading: Builder(builder: (context) => IconButton(icon: Icon(Icons.settings_outlined, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black), onPressed: () => Scaffold.of(context).openDrawer())),
+        leading: Builder(builder: (context) => IconButton(icon: Icon(Icons.sort_rounded, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black), onPressed: () => Scaffold.of(context).openDrawer())),
         title: const Text("Task Management App", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)), centerTitle: true,
         actions: [
           Padding(
