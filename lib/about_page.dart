@@ -7,223 +7,230 @@ class AboutPage extends StatelessWidget {
   static const List<Map<String, String>> _members = [
     {
       'name': 'Đào Minh Khương',
+      'role': 'Team Leader',
       'image': 'assets/members/khuong.jpg',
     },
     {
       'name': 'Huỳnh Hải Nam',
+      'role': 'Developer',
       'image': 'assets/members/nam.jpg',
     },
     {
       'name': 'Chu Văn Lương',
+      'role': 'Developer',
       'image': 'assets/members/luong.jpg',
     },
     {
       'name': 'Phí Đình Huynh',
+      'role': 'Designer',
       'image': 'assets/members/huynh.jpg',
     },
     {
       'name': 'Đinh Quang Huy',
+      'role': 'Tester',
       'image': 'assets/members/huy.jpg',
     },
   ];
 
   Widget _buildMemberItem(BuildContext context, Map<String, String> member) {
-    final theme = Theme.of(context);
-    return SizedBox(
-      width: 96,
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(3),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: kPriority2Color.withOpacity(0.45),
-                width: 2,
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(3),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              colors: [kPriority2Color, kPriority2Color.withOpacity(0.1)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: kPriority2Color.withOpacity(0.2),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.18),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: CircleAvatar(
-              radius: 34,
-              backgroundColor: theme.cardColor,
-              backgroundImage: AssetImage(member['image']!),
-            ),
+            ],
           ),
-          const SizedBox(height: 10),
-          SizedBox(
-            height: 20,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                member['name']!,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                style: TextStyle(
-                  color: theme.brightness == Brightness.dark ? Colors.white : Colors.black,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
+          child: CircleAvatar(
+            radius: 38,
+            backgroundColor: kBackgroundColor,
+            backgroundImage: AssetImage(member['image']!),
+            child: Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.black.withOpacity(0.2), width: 1),
               ),
             ),
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          member['name']!,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          member['role']!,
+          style: TextStyle(
+            color: Colors.white.withOpacity(0.4),
+            fontSize: 10,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildSectionCard(BuildContext context, {
-    required Widget child,
-    EdgeInsetsGeometry padding = const EdgeInsets.all(20),
-  }) {
-    final theme = Theme.of(context);
+  Widget _buildSectionCard({required String title, required IconData icon, required Widget child, Color? accentColor}) {
     return Container(
       width: double.infinity,
-      padding: padding,
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.06)),
+        color: kCardColor,
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.18),
-            blurRadius: 14,
-            offset: const Offset(0, 6),
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
-      child: child,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: accentColor ?? kPriority2Color, size: 22),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          child,
+        ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: kBackgroundColor,
       appBar: AppBar(
-        backgroundColor: theme.scaffoldBackgroundColor,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        iconTheme: IconThemeData(color: isDark ? Colors.white : Colors.black),
-        title: Text(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
           'About',
-          style: TextStyle(
-            color: isDark ? Colors.white : Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
         ),
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildSectionCard(
-                context,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.groups_rounded, color: kPriority2Color),
-                        const SizedBox(width: 10),
-                        Text(
-                          'Nhóm phát triển',
-                          style: TextStyle(
-                            color: isDark ? Colors.white : Colors.black,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Hàng trên: 3 người
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _buildMemberItem(context, _members[0]),
-                        _buildMemberItem(context, _members[1]),
-                        _buildMemberItem(context, _members[2]),
-                      ],
-                    ),
-
-                    const SizedBox(height: 22),
-
-                    // Hàng dưới: 2 người
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _buildMemberItem(context, _members[3]),
-                        const SizedBox(width: 28),
-                        _buildMemberItem(context, _members[4]),
-                      ],
-                    ),
-                  ],
-                ),
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        child: Column(
+          children: [
+            _buildSectionCard(
+              title: 'Nhóm phát triển',
+              icon: Icons.groups_rounded,
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      Expanded(child: _buildMemberItem(context, _members[0])),
+                      Expanded(child: _buildMemberItem(context, _members[1])),
+                      Expanded(child: _buildMemberItem(context, _members[2])),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(width: 110, child: _buildMemberItem(context, _members[3])),
+                      const SizedBox(width: 20),
+                      SizedBox(width: 110, child: _buildMemberItem(context, _members[4])),
+                    ],
+                  ),
+                ],
               ),
-              const SizedBox(height: 20),
-              _buildSectionCard(
-                context,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.info_outline_rounded, color: kPriority1Color),
-                        const SizedBox(width: 10),
-                        Text(
-                          'Giới thiệu ứng dụng',
-                          style: TextStyle(
-                            color: isDark ? Colors.white : Colors.black,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+            ),
+            const SizedBox(height: 20),
+            _buildSectionCard(
+              title: 'Giới thiệu ứng dụng',
+              icon: Icons.info_outline_rounded,
+              accentColor: kPriority1Color,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Task Management App là ứng dụng hỗ trợ quản lý công việc cá nhân hằng ngày một cách trực quan và dễ sử dụng.',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Ứng dụng cho phép người dùng tạo task, chỉnh sửa nội dung, theo dõi tiến độ và sắp xếp công việc theo mức độ ưu tiên. Với giao diện tối hiện đại, người dùng có thể tập trung hơn vào kế hoạch cá nhân và nâng cao hiệu suất học tập hoặc làm việc.',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.6),
+                      fontSize: 14,
+                      height: 1.6,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Phiên bản 1.0.0',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.2),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Task Management App là ứng dụng hỗ trợ quản lý công việc cá nhân hằng ngày một cách trực quan và dễ sử dụng.',
-                      style: TextStyle(
-                        color: isDark ? Colors.white : Colors.black,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        height: 1.45,
                       ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'Ứng dụng cho phép người dùng tạo task, chỉnh sửa nội dung, theo dõi tiến độ và sắp xếp công việc theo mức độ ưu tiên. Với giao diện tối hiện đại, người dùng có thể tập trung hơn vào kế hoạch cá nhân và nâng cao hiệu suất học tập hoặc làm việc.',
-                      style: TextStyle(
-                        color: isDark ? Colors.white70 : Colors.black87,
-                        fontSize: 14,
-                        height: 1.7,
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: kPriority1Color.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Text(
+                          'Latest Version',
+                          style: TextStyle(color: kPriority1Color, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Phiên bản 1.0.0',
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 40),
+          ],
         ),
       ),
     );
