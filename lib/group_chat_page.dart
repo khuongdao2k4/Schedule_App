@@ -28,31 +28,69 @@ class _GroupChatPageState extends State<GroupChatPage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: kCardColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text("Thêm thành viên", style: TextStyle(color: Colors.white)),
-        content: TextField(
-          controller: _memberEmailController,
-          style: const TextStyle(color: Colors.white),
-          decoration: const InputDecoration(
-            hintText: "Email thành viên",
-            hintStyle: TextStyle(color: Colors.white54),
-            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: kPriority1Color)),
-          ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Text("Thêm thành viên", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              "Nhập email người bạn muốn mời vào nhóm.",
+              style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _memberEmailController,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: "example@email.com",
+                hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                filled: true,
+                fillColor: Colors.black.withOpacity(0.2),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+            ),
+          ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Hủy", style: TextStyle(color: Colors.grey))),
           TextButton(
+            onPressed: () => Navigator.pop(context), 
+            child: const Text("Hủy", style: TextStyle(color: Colors.white54))
+          ),
+          ElevatedButton(
             onPressed: () async {
               try {
                 await _groupService.addMember(widget.group.id, _memberEmailController.text.trim());
                 if (!mounted) return;
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Đã thêm thành viên!")));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text("Đã thêm thành viên!"),
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  )
+                );
               } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.redAccent));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(e.toString()), 
+                    backgroundColor: Colors.redAccent,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  )
+                );
               }
             },
-            child: const Text("Thêm", style: TextStyle(color: kPriority1Color, fontWeight: FontWeight.bold)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kPriority1Color,
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
+            ),
+            child: const Text("Thêm", style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -66,19 +104,34 @@ class _GroupChatPageState extends State<GroupChatPage> {
     return Scaffold(
       backgroundColor: kBackgroundColor,
       appBar: AppBar(
-        backgroundColor: kCardColor,
+        backgroundColor: kBackgroundColor,
         elevation: 0,
+        centerTitle: false,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(widget.group.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            Text("${widget.group.members.length} thành viên", style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.5))),
+            Text(
+              widget.group.name, 
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)
+            ),
+            Text(
+              "${widget.group.members.length} thành viên • Trực tuyến", 
+              style: TextStyle(fontSize: 11, color: kPriority1Color.withOpacity(0.8), fontWeight: FontWeight.w500)
+            ),
           ],
         ),
         actions: [
           if (isOwner)
-            IconButton(icon: const Icon(Icons.person_add_alt_1_outlined), onPressed: _showAddMemberDialog),
+            IconButton(
+              icon: const Icon(Icons.person_add_rounded, color: Colors.white70), 
+              onPressed: _showAddMemberDialog
+            ),
+          const SizedBox(width: 8),
         ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(color: Colors.white.withOpacity(0.05), height: 1),
+        ),
       ),
       body: Column(
         children: [
@@ -87,7 +140,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
               stream: _groupService.getGroupTasks(widget.group.id),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator(color: kPriority1Color));
+                  return const Center(child: CircularProgressIndicator(color: kPriority1Color, strokeWidth: 2));
                 }
                 final tasks = snapshot.data ?? [];
                 if (tasks.isEmpty) {
@@ -95,9 +148,24 @@ class _GroupChatPageState extends State<GroupChatPage> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.assignment_outlined, size: 60, color: Colors.white.withOpacity(0.1)),
-                        const SizedBox(height: 10),
-                        Text("Chưa có task nào trong nhóm này", style: TextStyle(color: Colors.white.withOpacity(0.3))),
+                        Container(
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: kCardColor.withOpacity(0.3),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(Icons.forum_outlined, size: 64, color: Colors.white.withOpacity(0.1)),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          "Chưa có tin nhắn nhiệm vụ nào", 
+                          style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 15, fontWeight: FontWeight.w500)
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          "Hãy bắt đầu bằng cách tạo một nhiệm vụ mới", 
+                          style: TextStyle(color: Colors.white.withOpacity(0.15), fontSize: 13)
+                        ),
                       ],
                     ),
                   );
@@ -127,38 +195,64 @@ class _GroupChatPageState extends State<GroupChatPage> {
 
   Widget _buildInputArea(bool isOwner) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
+      padding: EdgeInsets.fromLTRB(16, 12, 16, MediaQuery.of(context).padding.bottom + 12),
       decoration: BoxDecoration(
-        color: kCardColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+        color: kBackgroundColor,
+        border: Border(top: BorderSide(color: Colors.white.withOpacity(0.05))),
       ),
       child: Row(
         children: [
           Expanded(
-            child: Text(
-              isOwner ? "Tạo nhiệm vụ cho nhóm..." : "Đề xuất nhiệm vụ cho nhóm...",
-              style: TextStyle(color: Colors.white.withOpacity(0.5)),
+            child: GestureDetector(
+              onTap: () => _navigateToAddTask(isOwner),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                decoration: BoxDecoration(
+                  color: kCardColor.withOpacity(0.8),
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(color: Colors.white.withOpacity(0.05)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.assignment_add, size: 20, color: Colors.white.withOpacity(0.4)),
+                    const SizedBox(width: 12),
+                    Text(
+                      isOwner ? "Tạo nhiệm vụ cho nhóm..." : "Đề xuất nhiệm vụ...",
+                      style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
+          const SizedBox(width: 12),
           GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => AddTaskPage(
-                    groupId: widget.group.id,
-                    initialStatus: isOwner ? 'approved' : 'pending',
-                  ),
-                ),
-              );
-            },
+            onTap: () => _navigateToAddTask(isOwner),
             child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: const BoxDecoration(color: kPriority1Color, shape: BoxShape.circle),
-              child: const Icon(Icons.add_task, color: Colors.black),
+              height: 48, width: 48,
+              decoration: const BoxDecoration(
+                color: kPriority1Color,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(color: kPriority1Color, blurRadius: 10, offset: Offset(0, 4), spreadRadius: -2)
+                ],
+              ),
+              child: const Icon(Icons.add_task_rounded, color: Colors.black, size: 24),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _navigateToAddTask(bool isOwner) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AddTaskPage(
+          groupId: widget.group.id,
+          initialStatus: isOwner ? 'approved' : 'pending',
+        ),
       ),
     );
   }
@@ -187,7 +281,7 @@ class _TaskMessageItem extends StatelessWidget {
     IconData taskIcon = task.iconCode != null ? IconData(task.iconCode!, fontFamily: 'MaterialIcons') : Icons.assignment_outlined;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 24),
+      margin: const EdgeInsets.only(bottom: 20),
       child: Column(
         crossAxisAlignment: isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
@@ -200,39 +294,30 @@ class _TaskMessageItem extends StatelessWidget {
               final photoUrl = userData?['photo'];
 
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                padding: const EdgeInsets.only(bottom: 6, left: 4, right: 4),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (!isMine) ...[
-                      CircleAvatar(
-                        radius: 12,
-                        backgroundColor: Colors.white10,
-                        backgroundImage: (photoUrl != null && photoUrl.toString().startsWith('http')) ? NetworkImage(photoUrl) : null,
-                        child: (photoUrl == null || !photoUrl.toString().startsWith('http')) ? const Icon(Icons.person, size: 12, color: Colors.white54) : null,
-                      ),
+                      _buildAvatar(photoUrl),
                       const SizedBox(width: 8),
                     ],
                     Text(
                       isMine ? "Bạn" : name,
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.7),
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
+                        color: Colors.white.withOpacity(0.6),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
+                    const SizedBox(width: 6),
                     Text(
-                      " • $creationTimeStr",
-                      style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 11),
+                      creationTimeStr,
+                      style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 10),
                     ),
                     if (isMine) ...[
                       const SizedBox(width: 8),
-                      CircleAvatar(
-                        radius: 12,
-                        backgroundColor: Colors.white10,
-                        backgroundImage: (photoUrl != null && photoUrl.toString().startsWith('http')) ? NetworkImage(photoUrl) : null,
-                        child: (photoUrl == null || !photoUrl.toString().startsWith('http')) ? const Icon(Icons.person, size: 12, color: Colors.white54) : null,
-                      ),
+                      _buildAvatar(photoUrl),
                     ],
                   ],
                 ),
@@ -241,162 +326,169 @@ class _TaskMessageItem extends StatelessWidget {
           ),
 
           // Task Card
-          Container(
-            constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.9),
-            decoration: BoxDecoration(
-              color: isMine ? const Color(0xFF2D3B55) : kCardColor,
-              borderRadius: BorderRadius.circular(24),
-              border: isPending 
-                  ? Border.all(color: Colors.orangeAccent.withOpacity(0.4), width: 1.5) 
-                  : Border.all(color: Colors.white.withOpacity(0.05), width: 1),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.15),
-                  blurRadius: 12,
-                  offset: const Offset(0, 6),
-                )
-              ],
+          GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => TaskDetailPage(task: task)),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Upper Section: Icon, Title, Status
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: kPriority1Color.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Icon(taskIcon, color: kPriority1Color, size: 22),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  task.title,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    Icon(Icons.access_time, size: 12, color: Colors.white.withOpacity(0.4)),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      taskTimeStr,
-                                      style: TextStyle(
-                                        color: Colors.white.withOpacity(0.4),
-                                        fontSize: 11,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          _StatusBadge(status: task.status),
-                        ],
-                      ),
-                      if (task.description.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        Text(
-                          task.description,
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.6),
-                            fontSize: 13,
-                            height: 1.4,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ],
-                  ),
+            child: Container(
+              constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.85),
+              decoration: BoxDecoration(
+                color: isMine ? const Color(0xFF2D3B55) : kCardColor,
+                borderRadius: BorderRadius.only(
+                  topLeft: const Radius.circular(20),
+                  topRight: const Radius.circular(20),
+                  bottomLeft: Radius.circular(isMine ? 20 : 4),
+                  bottomRight: Radius.circular(isMine ? 4 : 20),
                 ),
-
-                // Lower Section: Progress and Assignees
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
+                border: Border.all(
+                  color: isPending 
+                      ? Colors.orangeAccent.withOpacity(0.3) 
+                      : Colors.white.withOpacity(0.05), 
+                  width: 1
+                ),
+                boxShadow: [
+                  BoxShadow(
                     color: Colors.black.withOpacity(0.1),
-                    borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  )
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Upper Section: Icon, Title, Status
+                  Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  "Tiến độ",
-                                  style: TextStyle(
-                                    color: Colors.white.withOpacity(0.4),
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                Text(
-                                  "${(progress * 100).toInt()}%",
-                                  style: const TextStyle(
-                                    color: kPriority1Color,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: kPriority1Color.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(taskIcon, color: kPriority1Color, size: 20),
                             ),
-                            const SizedBox(height: 6),
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(4),
-                              child: LinearProgressIndicator(
-                                value: progress,
-                                minHeight: 4,
-                                backgroundColor: Colors.white.withOpacity(0.05),
-                                valueColor: const AlwaysStoppedAnimation<Color>(kPriority1Color),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    task.title,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Row(
+                                    children: [
+                                      Icon(Icons.schedule_rounded, size: 12, color: Colors.white.withOpacity(0.4)),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        taskTimeStr,
+                                        style: TextStyle(
+                                          color: Colors.white.withOpacity(0.4),
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
                             ),
+                            const SizedBox(width: 8),
+                            _StatusBadge(status: task.status),
                           ],
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      UserAvatarStack(uids: task.assignees, size: 28),
-                      const SizedBox(width: 8),
-                      IconButton(
-                        onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => TaskDetailPage(task: task)),
-                        ),
-                        icon: const Icon(Icons.arrow_forward_ios, size: 14, color: kPriority2Color),
-                        constraints: const BoxConstraints(),
-                        padding: EdgeInsets.zero,
-                      ),
-                    ],
+                        if (task.description.isNotEmpty) ...[
+                          const SizedBox(height: 10),
+                          Text(
+                            task.description,
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.5),
+                              fontSize: 13,
+                              height: 1.4,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+
+                  // Lower Section: Progress and Assignees
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.15),
+                      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    "Tiến độ",
+                                    style: TextStyle(
+                                      color: Colors.white.withOpacity(0.4),
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  Text(
+                                    "${(progress * 100).toInt()}%",
+                                    style: const TextStyle(
+                                      color: kPriority1Color,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: LinearProgressIndicator(
+                                  value: progress,
+                                  minHeight: 4,
+                                  backgroundColor: Colors.white.withOpacity(0.05),
+                                  valueColor: const AlwaysStoppedAnimation<Color>(kPriority1Color),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        UserAvatarStack(uids: task.assignees, size: 24),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
 
           // Owner Actions for Pending Tasks
           if (isPending && isOwner)
             Padding(
-              padding: const EdgeInsets.only(top: 12, right: 4, left: 4),
+              padding: const EdgeInsets.only(top: 10, right: 4, left: 4),
               child: Row(
                 mainAxisAlignment: isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
                 children: [
@@ -405,9 +497,9 @@ class _TaskMessageItem extends StatelessWidget {
                     color: Colors.redAccent,
                     onPressed: () => GroupService().declineTask(task.id!),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   _ActionButton(
-                    label: "Duyệt ngay",
+                    label: "Phê duyệt",
                     color: kPriority1Color,
                     isPrimary: true,
                     onPressed: () => GroupService().approveTask(task.id!),
@@ -416,6 +508,24 @@ class _TaskMessageItem extends StatelessWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAvatar(dynamic photoUrl) {
+    return Container(
+      padding: const EdgeInsets.all(1),
+      decoration: BoxDecoration(
+        color: kPriority1Color.withOpacity(0.5),
+        shape: BoxShape.circle,
+      ),
+      child: CircleAvatar(
+        radius: 10,
+        backgroundColor: kCardColor,
+        backgroundImage: (photoUrl != null && photoUrl.toString().startsWith('http')) ? NetworkImage(photoUrl) : null,
+        child: (photoUrl == null || !photoUrl.toString().startsWith('http')) 
+            ? const Icon(Icons.person, size: 10, color: Colors.white54) 
+            : null,
       ),
     );
   }
@@ -436,22 +546,25 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onPressed,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isPrimary ? color : color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: isPrimary ? null : Border.all(color: color.withOpacity(0.3)),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isPrimary ? Colors.black : color,
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: isPrimary ? color : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            border: isPrimary ? null : Border.all(color: color.withOpacity(0.5)),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isPrimary ? Colors.black : color,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ),
@@ -469,17 +582,24 @@ class _StatusBadge extends StatelessWidget {
     String text;
     switch (status) {
       case 'pending':
-        color = Colors.orangeAccent; text = "PENDING"; break;
+        color = Colors.orangeAccent; text = "CHỜ DUYỆT"; break;
       case 'declined':
-        color = Colors.redAccent; text = "DECLINED"; break;
+        color = Colors.redAccent; text = "TỪ CHỐI"; break;
       default:
-        color = kPriority1Color; text = "APPROVED";
+        color = kPriority1Color; text = "ĐÃ DUYỆT";
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(4), border: Border.all(color: color.withOpacity(0.3))),
-      child: Text(text, style: TextStyle(color: color, fontSize: 8, fontWeight: FontWeight.bold)),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1), 
+        borderRadius: BorderRadius.circular(6), 
+        border: Border.all(color: color.withOpacity(0.2))
+      ),
+      child: Text(
+        text, 
+        style: TextStyle(color: color, fontSize: 8, fontWeight: FontWeight.w800, letterSpacing: 0.5)
+      ),
     );
   }
 }
