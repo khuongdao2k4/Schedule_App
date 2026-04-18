@@ -60,9 +60,10 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Cài đặt tài khoản"),
+        title: const Text("Cài đặt tài khoản", style: TextStyle(fontWeight: FontWeight.bold)),
+        centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -70,8 +71,8 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
         padding: const EdgeInsets.all(16),
         children: [
           _buildSettingTile(
-            title: "Thông báo Task",
-            subtitle: "Bật/Tắt thông báo nhắc nhở deadline",
+            title: "Thông báo nhiệm vụ",
+            subtitle: "Bật/Tắt thông báo nhắc nhở hạn chót",
             icon: Icons.notifications_active_outlined,
             trailing: Switch(
               value: _notificationsEnabled,
@@ -122,13 +123,14 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
       ),
       child: Row(
         children: [
-          Icon(icon, size: 28),
+          Icon(icon, size: 28, color: Theme.of(context).primaryColor),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 2),
                 Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.grey)),
               ],
             ),

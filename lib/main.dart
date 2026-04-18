@@ -164,12 +164,12 @@ class _LoginPageState extends State<LoginPage> {
                         const _MissionTitle(),
                         const SizedBox(height: 28),
                         _GoogleSystemButton(
-                          text: isLoading ? 'ĐANG KÍCH HOẠT...' : 'Login with Google',
+                          text: isLoading ? 'ĐANG KÍCH HOẠT...' : 'Đăng nhập với Google',
                           onTap: isLoading ? null : _handleGoogleLogin,
                         ),
                         const SizedBox(height: 24),
                         Text(
-                          'HÀNH TRÌNH CẰM NHỌN BẮT ĐẦU',
+                          'HÀNH TRÌNH BẮT ĐẦU',
                           textAlign: TextAlign.center,
                           style: TextStyle(color: Colors.white.withOpacity(0.72), fontSize: 12, letterSpacing: 2.6),
                         ),
@@ -221,7 +221,7 @@ class _MissionTitle extends StatelessWidget {
       children: [
         const Text('NHIỆM VỤ HỆ THỐNG', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 25, fontWeight: FontWeight.w700, letterSpacing: 2.8)),
         const SizedBox(height: 10),
-        Text('Login', textAlign: TextAlign.center, style: TextStyle(color: Colors.white.withOpacity(0.92), fontSize: 17, fontWeight: FontWeight.w500, letterSpacing: 1.1)),
+        Text('Đăng nhập', textAlign: TextAlign.center, style: TextStyle(color: Colors.white.withOpacity(0.92), fontSize: 17, fontWeight: FontWeight.w500, letterSpacing: 1.1)),
         const SizedBox(height: 14),
         Row(
           children: [
@@ -402,7 +402,7 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         backgroundColor: Colors.transparent, elevation: 0,
         leading: Builder(builder: (context) => IconButton(icon: Icon(Icons.sort_rounded, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black), onPressed: () => Scaffold.of(context).openDrawer())),
-        title: const Text("Task Management App", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)), centerTitle: true,
+        title: const Text("Quản lý Công việc", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)), centerTitle: true,
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 15),
@@ -450,7 +450,7 @@ class _HomePageState extends State<HomePage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 10),
-                  const Center(child: Text("Every Day Your\nTask Plan", textAlign: TextAlign.center, style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold, height: 1.2))),
+                  const Center(child: Text("Kế hoạch công việc\nmỗi ngày", textAlign: TextAlign.center, style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold, height: 1.2))),
                   const SizedBox(height: 25),
                   Row(
                     children: [
@@ -468,7 +468,7 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
                   const SizedBox(height: 35),
-                  const Text("On Going Task", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                  const Text("Công việc đang thực hiện", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 20),
                   Expanded(
                     child: todayTasks.isEmpty ? const Center(child: Text("Hôm nay chưa có task nào")) : ListView.builder(

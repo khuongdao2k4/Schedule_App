@@ -191,7 +191,7 @@ class _CalendarPageState extends State<CalendarPage> {
               Text(
                 isSameDay(_selectedDay, DateTime.now())
                     ? "Hôm nay"
-                    : DateFormat('dd MMMM, yyyy').format(_selectedDay),
+                    : DateFormat('dd MMMM, yyyy', 'vi_VN').format(_selectedDay),
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,

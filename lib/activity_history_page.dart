@@ -26,7 +26,7 @@ class _ActivityHistoryPageState extends State<ActivityHistoryPage> {
   String _searchQuery = "";
   String _selectedCategory = "Tất cả";
 
-  final List<String> _categories = ["Tất cả", "Work", "Study", "Personal", "Health"];
+  final List<String> _categories = ["Tất cả", "Công việc", "Học tập", "Cá nhân", "Sức khỏe"];
 
   @override
   void dispose() {
@@ -36,19 +36,19 @@ class _ActivityHistoryPageState extends State<ActivityHistoryPage> {
 
   IconData _getCategoryIcon(String category) {
     switch (category) {
-      case 'Work': return Icons.work_outline;
-      case 'Study': return Icons.menu_book_rounded;
-      case 'Personal': return Icons.person_outline;
-      case 'Health': return Icons.favorite_border_rounded;
+      case 'Công việc': case 'Work': return Icons.work_outline;
+      case 'Học tập': case 'Study': return Icons.menu_book_rounded;
+      case 'Cá nhân': case 'Personal': return Icons.person_outline;
+      case 'Sức khỏe': case 'Health': return Icons.favorite_border_rounded;
       default: return Icons.category_outlined;
     }
   }
 
   Color _getCategoryColor(String category) {
     switch (category) {
-      case 'Work': return kPriority2Color;
-      case 'Study': return kPriority3Color;
-      case 'Health': return Colors.redAccent;
+      case 'Công việc': case 'Work': return kPriority2Color;
+      case 'Học tập': case 'Study': return kPriority3Color;
+      case 'Sức khỏe': case 'Health': return Colors.redAccent;
       default: return kAccentColor;
     }
   }
@@ -94,8 +94,14 @@ class _ActivityHistoryPageState extends State<ActivityHistoryPage> {
                   // Lọc theo tìm kiếm tiêu đề
                   final matchesSearch = task.title.toLowerCase().contains(_searchQuery.toLowerCase());
                   
-                  // Lọc theo chủ đề
-                  final matchesCategory = _selectedCategory == "Tất cả" || task.category == _selectedCategory;
+                  // Lọc theo chủ đề (Hỗ trợ cả Tiếng Anh và Tiếng Việt cũ)
+                  bool matchesCategory = _selectedCategory == "Tất cả";
+                  if (!matchesCategory) {
+                    if (_selectedCategory == "Công việc") matchesCategory = task.category == "Công việc" || task.category == "Work";
+                    else if (_selectedCategory == "Học tập") matchesCategory = task.category == "Học tập" || task.category == "Study";
+                    else if (_selectedCategory == "Cá nhân") matchesCategory = task.category == "Cá nhân" || task.category == "Personal";
+                    else if (_selectedCategory == "Sức khỏe") matchesCategory = task.category == "Sức khỏe" || task.category == "Health";
+                  }
                   
                   // Lọc theo khoảng ngày
                   bool matchesDateRange = true;
@@ -141,7 +147,7 @@ class _ActivityHistoryPageState extends State<ActivityHistoryPage> {
             onChanged: (value) => setState(() => _searchQuery = value),
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              hintText: "Tìm kiếm tiêu đề task...",
+              hintText: "Tìm kiếm tiêu đề nhiệm vụ...",
               hintStyle: const TextStyle(color: kTextSoft),
               prefixIcon: const Icon(Icons.search, color: kTextSoft),
               filled: true,
@@ -323,7 +329,7 @@ class _ActivityHistoryPageState extends State<ActivityHistoryPage> {
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Text(
-                                      task.category,
+                                      _translateCategory(task.category),
                                       style: TextStyle(color: color.withOpacity(0.8), fontSize: 10, fontWeight: FontWeight.bold),
                                     ),
                                   ),
@@ -361,6 +367,16 @@ class _ActivityHistoryPageState extends State<ActivityHistoryPage> {
         ),
       ),
     );
+  }
+
+  String _translateCategory(String category) {
+    switch (category) {
+      case 'Work': return 'Công việc';
+      case 'Study': return 'Học tập';
+      case 'Personal': return 'Cá nhân';
+      case 'Health': return 'Sức khỏe';
+      default: return category;
+    }
   }
 
   Widget _buildEmptyState() {

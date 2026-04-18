@@ -7,27 +7,27 @@ class AboutPage extends StatelessWidget {
   static const List<Map<String, String>> _members = [
     {
       'name': 'Đào Minh Khương',
-      'role': 'Team Leader',
+      'role': 'Trưởng nhóm',
       'image': 'assets/members/khuong.jpg',
     },
     {
       'name': 'Huỳnh Hải Nam',
-      'role': 'Developer',
+      'role': 'Lập trình viên',
       'image': 'assets/members/nam.jpg',
     },
     {
       'name': 'Chu Văn Lương',
-      'role': 'Developer',
+      'role': 'Lập trình viên',
       'image': 'assets/members/luong.jpg',
     },
     {
       'name': 'Phí Đình Huynh',
-      'role': 'Designer',
+      'role': 'Thiết kế',
       'image': 'assets/members/huynh.jpg',
     },
     {
       'name': 'Đinh Quang Huy',
-      'role': 'Tester',
+      'role': 'Kiểm thử',
       'image': 'assets/members/huy.jpg',
     },
   ];
@@ -141,7 +141,7 @@ class AboutPage extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          'About',
+          'Giới thiệu',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
         ),
       ),
@@ -220,7 +220,7 @@ class AboutPage extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Text(
-                          'Latest Version',
+                          'Phiên bản mới nhất',
                           style: TextStyle(color: kPriority1Color, fontSize: 10, fontWeight: FontWeight.bold),
                         ),
                       ),

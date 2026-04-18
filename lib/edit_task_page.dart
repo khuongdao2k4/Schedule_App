@@ -169,6 +169,12 @@ class _EditTaskPageState extends State<EditTaskPage> {
       initialDate: _selectedDay ?? DateTime.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.dark(primary: kGlowColor, onPrimary: Colors.black, surface: kCardColor, onSurface: Colors.white),
+        ),
+        child: child!,
+      ),
     );
 
     if (picked != null) {
@@ -203,7 +209,7 @@ class _EditTaskPageState extends State<EditTaskPage> {
     
     // Kiểm tra quyền lần cuối trước khi lưu
     if (widget.task.userId != _currentUserId) {
-      _showMessage("Bạn không có quyền sửa task này!");
+      _showMessage("Bạn không có quyền sửa nhiệm vụ này!");
       return;
     }
 
@@ -211,7 +217,7 @@ class _EditTaskPageState extends State<EditTaskPage> {
     final description = _descController.text.trim();
 
     if (title.isEmpty) {
-      _showMessage("Vui lòng nhập tiêu đề task");
+      _showMessage("Vui lòng nhập tiêu đề nhiệm vụ");
       return;
     }
 
@@ -237,7 +243,7 @@ class _EditTaskPageState extends State<EditTaskPage> {
     );
 
     if (!end.isAfter(start)) {
-      _showMessage("Giờ kết thúc phải lớn hơn giờ bắt đầu");
+      _showMessage("Giờ kết thúc phải sau giờ bắt đầu");
       return;
     }
 
@@ -252,7 +258,7 @@ class _EditTaskPageState extends State<EditTaskPage> {
       );
 
       if (isOverlapping) {
-        _showMessage("Thời gian này bị trùng với task khác!");
+        _showMessage("Thời gian này bị trùng với nhiệm vụ khác!");
         setState(() => _isLoading = false);
         return;
       }
@@ -274,12 +280,12 @@ class _EditTaskPageState extends State<EditTaskPage> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Cập nhật task thành công"),
+          content: Text("Cập nhật nhiệm vụ thành công"),
           backgroundColor: Colors.green,
         ),
       );
     } catch (e) {
-      _showMessage("Có lỗi xảy ra khi cập nhật task");
+      _showMessage("Có lỗi xảy ra khi cập nhật nhiệm vụ");
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -299,7 +305,7 @@ class _EditTaskPageState extends State<EditTaskPage> {
 
   String _formatPreviewDate() {
     if (_selectedDay == null) return "Chưa chọn ngày";
-    return DateFormat('EEE, dd MMM yyyy').format(_selectedDay!);
+    return DateFormat('dd/MM/yyyy').format(_selectedDay!);
   }
 
   String _formatPreviewTime() {
@@ -352,13 +358,13 @@ class _EditTaskPageState extends State<EditTaskPage> {
                       _buildSectionLabel("Tiêu đề"),
                       _buildTextField(
                         controller: _titleController,
-                        hint: "Nhập tiêu đề task...",
+                        hint: "Nhập tiêu đề nhiệm vụ...",
                       ),
                       const SizedBox(height: 20),
                       _buildSectionLabel("Mô tả"),
                       _buildTextField(
                         controller: _descController,
-                        hint: "Mô tả task...",
+                        hint: "Mô tả nhiệm vụ...",
                         maxLines: 3,
                       ),
                       const SizedBox(height: 20),
@@ -445,7 +451,7 @@ class _EditTaskPageState extends State<EditTaskPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "Edit Task",
+                "Sửa Nhiệm vụ",
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 22,
@@ -516,7 +522,7 @@ class _EditTaskPageState extends State<EditTaskPage> {
           const SizedBox(height: 16),
           Text(
             _titleController.text.trim().isEmpty
-                ? "Tên task"
+                ? "Tên nhiệm vụ"
                 : _titleController.text.trim(),
             textAlign: TextAlign.center,
             style: const TextStyle(

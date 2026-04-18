@@ -85,7 +85,7 @@ class SettingsPage extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
-                      "Menu",
+                      "Danh mục",
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 28,
@@ -142,7 +142,7 @@ class SettingsPage extends StatelessWidget {
                   context,
                   icon: Icons.info_rounded,
                   iconColor: kPriority3Color,
-                  title: "About",
+                  title: "Giới thiệu",
                   subtitle: "Thông tin về ứng dụng và phiên bản",
                   onTap: () {
                     Navigator.pop(context);
@@ -161,7 +161,7 @@ class SettingsPage extends StatelessWidget {
                 Divider(color: Colors.white.withOpacity(0.05)),
                 const SizedBox(height: 16),
                 Text(
-                  "Version 1.0.0",
+                  "Phiên bản 1.0.0",
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.2),
                     fontSize: 12,

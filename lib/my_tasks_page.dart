@@ -173,7 +173,7 @@ class _MyTasksPageState extends State<MyTasksPage> {
             Navigator.push(context, MaterialPageRoute(builder: (_) => const CalendarPage()));
           }
         ),
-        title: const Text("My Tasks", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text("Công việc của tôi", style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
       ),
       body: Stack(
@@ -255,7 +255,7 @@ class _MyTasksPageState extends State<MyTasksPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(DateFormat('MMMM yyyy').format(selectedDate), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+        Text(DateFormat('MMMM yyyy', 'vi_VN').format(selectedDate), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
         const SizedBox(width: 5),
         const Icon(Icons.keyboard_arrow_down, size: 20),
       ],
@@ -304,7 +304,7 @@ class _MyTasksPageState extends State<MyTasksPage> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(date.day.toString(), style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: isSelected ? Colors.black : (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black))),
-                            Text(DateFormat('E').format(date), style: TextStyle(fontSize: 14, color: isSelected ? Colors.black54 : Colors.grey)),
+                            Text(DateFormat('E', 'vi_VN').format(date), style: TextStyle(fontSize: 14, color: isSelected ? Colors.black54 : Colors.grey)),
                           ],
                         ),
                       ),

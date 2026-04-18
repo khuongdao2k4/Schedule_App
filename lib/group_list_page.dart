@@ -92,7 +92,7 @@ class _GroupListPageState extends State<GroupListPage> {
             physics: const BouncingScrollPhysics(),
             slivers: [
               SliverAppBar(
-                expandedHeight: 140.0, // Giảm chiều cao để tiêu đề cân đối hơn
+                expandedHeight: 140.0,
                 collapsedHeight: 70.0,
                 pinned: true,
                 backgroundColor: kBackgroundColor.withOpacity(0.9),
@@ -109,7 +109,7 @@ class _GroupListPageState extends State<GroupListPage> {
                 ),
                 flexibleSpace: FlexibleSpaceBar(
                   centerTitle: false,
-                  titlePadding: const EdgeInsets.only(left: 20, bottom: 12, right: 20), // Chỉnh padding tiêu đề
+                  titlePadding: const EdgeInsets.only(left: 20, bottom: 12, right: 20),
                   title: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -138,7 +138,7 @@ class _GroupListPageState extends State<GroupListPage> {
                       onChanged: (value) => setState(() => _searchQuery = value),
                       style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
-                        hintText: "Tìm kiếm dự án...",
+                        hintText: "Tìm kiếm nhóm...",
                         hintStyle: TextStyle(color: Colors.white.withOpacity(0.2), fontSize: 14),
                         prefixIcon: Icon(Icons.search_rounded, color: Colors.white.withOpacity(0.3), size: 18),
                         border: InputBorder.none,

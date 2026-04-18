@@ -32,8 +32,8 @@ class NotificationService {
     // Create notification channel for high importance
     const AndroidNotificationChannel channel = AndroidNotificationChannel(
       'task_deadline_channel',
-      'Task Deadlines',
-      description: 'Notifications for task start and end times',
+      'Thông báo Nhiệm vụ',
+      description: 'Thông báo về thời gian bắt đầu và kết thúc nhiệm vụ',
       importance: Importance.max,
       playSound: true,
       enableVibration: true,
@@ -56,8 +56,8 @@ class NotificationService {
     if (task.startTime != null && task.startTime!.isAfter(DateTime.now())) {
       await _scheduleNotification(
         id: baseId,
-        title: 'Task Bắt Đầu: ${task.title}',
-        body: 'Đã đến lúc bắt đầu nhiệm vụ của bạn!',
+        title: 'Nhiệm vụ Bắt đầu: ${task.title}',
+        body: 'Đã đến lúc thực hiện công việc của bạn!',
         scheduledDate: task.startTime!,
       );
     }
@@ -66,8 +66,8 @@ class NotificationService {
     if (task.endTime != null && task.endTime!.isAfter(DateTime.now())) {
       await _scheduleNotification(
         id: baseId + 1,
-        title: 'Deadline: ${task.title}',
-        body: 'Nhiệm vụ này đã đến thời hạn kết thúc!',
+        title: 'Hạn chót: ${task.title}',
+        body: 'Nhiệm vụ này đã đến thời gian kết thúc!',
         scheduledDate: task.endTime!,
       );
     }
@@ -87,8 +87,8 @@ class NotificationService {
       const NotificationDetails(
         android: AndroidNotificationDetails(
           'task_deadline_channel',
-          'Task Deadlines',
-          channelDescription: 'Notifications for task start and end times',
+          'Thông báo Nhiệm vụ',
+          channelDescription: 'Thông báo về thời gian bắt đầu và kết thúc nhiệm vụ',
           importance: Importance.max,
           priority: Priority.high,
           fullScreenIntent: true,

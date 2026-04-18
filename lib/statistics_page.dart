@@ -224,7 +224,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
           overdue > 2 ? "Cần tập trung" : "Kiểm soát tốt"),
         _buildMiniCard("Đang làm", "${(total - completed).clamp(0, total)}", Icons.pending_outlined, kPriority2Color,
           "Chưa hoàn tất"),
-        _buildMiniCard("Chuỗi ngày", "$streak d", Icons.local_fire_department_rounded, Colors.orangeAccent,
+        _buildMiniCard("Chuỗi ngày", "$streak ngày", Icons.local_fire_department_rounded, Colors.orangeAccent,
           streak > 3 ? "Phong độ tốt" : "Bắt đầu chuỗi"),
       ],
     );
@@ -310,8 +310,8 @@ class _StatisticsPageState extends State<StatisticsPage> {
   }
 
   Widget _buildBalanceAnalysis(List<Task> tasks) {
-    int selfImp = tasks.where((t) => ['Self-Improvement', 'Study', 'Health'].contains(t.category)).length;
-    int ent = tasks.where((t) => ['Entertainment', 'Social'].contains(t.category)).length;
+    int selfImp = tasks.where((t) => ['Học tập', 'Sức khỏe', 'Phát triển bản thân', 'Study', 'Health', 'Self-Improvement'].contains(t.category)).length;
+    int ent = tasks.where((t) => ['Giải trí', 'Entertainment', 'Social'].contains(t.category)).length;
     
     String balanceText = "Cân bằng";
     Color balanceColor = kPriority1Color;
@@ -367,8 +367,8 @@ class _StatisticsPageState extends State<StatisticsPage> {
   }
 
   Widget _buildPriorityAnalysis(List<Task> tasks) {
-    int h = tasks.where((t) => t.priority == 'High').length;
-    int m = tasks.where((t) => t.priority == 'Medium').length;
+    int h = tasks.where((t) => t.priority == 'High' || t.priority == 'Cao').length;
+    int m = tasks.where((t) => t.priority == 'Medium' || t.priority == 'Trung bình').length;
     
     String priorityEval = "Hợp lý";
     if (tasks.isNotEmpty && h / tasks.length > 0.5) priorityEval = "Nhiều việc gấp";
@@ -418,7 +418,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
 
   String _getAdvice(List<Task> tasks) {
     if (tasks.isEmpty) return "Bắt đầu thêm công việc để tôi có thể phân tích giúp bạn!";
-    int selfImp = tasks.where((t) => ['Self-Improvement', 'Study', 'Health'].contains(t.category)).length;
+    int selfImp = tasks.where((t) => ['Học tập', 'Sức khỏe', 'Phát triển bản thân', 'Study', 'Health', 'Self-Improvement'].contains(t.category)).length;
     double ratio = selfImp / tasks.length;
     if (ratio > 0.7) return "Bạn đang rèn luyện rất căng thẳng. Đừng quên dành 15p nghỉ ngơi mỗi giờ nhé! ☕";
     if (ratio < 0.2) return "Có vẻ bạn đang hơi nuông chiều bản thân. Hãy thử bắt đầu với một task nhỏ nào! 💪";
@@ -438,7 +438,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
     if (tasks.isEmpty) return 0;
     double tot = 0, comp = 0;
     for (var t in tasks) {
-      double w = t.priority == 'High' ? 3 : (t.priority == 'Medium' ? 2 : 1);
+      double w = (t.priority == 'High' || t.priority == 'Cao') ? 3 : ((t.priority == 'Medium' || t.priority == 'Trung bình') ? 2 : 1);
       tot += w; if (t.isDone) comp += w;
     }
     return (comp / tot * 100).toInt();

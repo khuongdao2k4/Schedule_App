@@ -155,7 +155,7 @@ class _BadgesPageState extends State<BadgesPage> {
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border: Border.all(color: accentColor, width: 2.5),
+                        border: Border.all(accentColor, width: 2.5),
                       ),
                       child: CircleAvatar(
                         radius: 50,
@@ -232,7 +232,7 @@ class _BadgesPageState extends State<BadgesPage> {
                                     activeColor: badge.color,
                                     onChanged: (val) => _toggleBadge(badge.name, val),
                                   )
-                                : const Text("Locked", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                                : const Text("Đã khóa", style: TextStyle(color: Colors.grey, fontSize: 12)),
                           ),
                           if (isExpanded)
                             Padding(

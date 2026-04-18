@@ -42,16 +42,16 @@ class _AddTaskPageState extends State<AddTaskPage> {
   TimeOfDay? _endTime;
   bool _isLoading = false;
 
-  String _selectedPriority = 'Medium';
-  String _selectedCategory = 'Personal';
+  String _selectedPriority = 'Trung bình';
+  String _selectedCategory = 'Cá nhân';
 
   final List<String> _assignees = [];
   final String _currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
 
   final List<String> _categories = [
-    'Work', 'Study', 'Personal', 'Health', 'Entertainment', 'Self-Improvement', 'Finance', 'Other'
+    'Công việc', 'Học tập', 'Cá nhân', 'Sức khỏe', 'Giải trí', 'Phát triển bản thân', 'Tài chính', 'Khác'
   ];
-  final List<String> _priorities = ['Low', 'Medium', 'High'];
+  final List<String> _priorities = ['Thấp', 'Trung bình', 'Cao'];
 
   final List<IconData> taskIcons = [
     Icons.work_rounded, Icons.menu_book_rounded, Icons.code_rounded, Icons.terminal_rounded,
@@ -75,7 +75,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
       _assignees.add(_currentUserId);
     }
     if (widget.groupId != null) {
-      _selectedCategory = 'Work';
+      _selectedCategory = 'Công việc';
       _loadGroupMembers();
     }
   }
