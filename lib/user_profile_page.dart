@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'task_service.dart';
 import 'task_model.dart';
 import 'user_service.dart';
+import 'main.dart';
 
 class UserProfilePage extends StatelessWidget {
   final String uid;
@@ -24,7 +25,7 @@ class UserProfilePage extends StatelessWidget {
     final currentUser = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF1B2333),
+      backgroundColor: kBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -50,7 +51,6 @@ class UserProfilePage extends StatelessWidget {
               final photoUrl = userData?['photo'];
               final bool hideBadges = userData?['hideBadges'] ?? false;
               
-              // Kiểm tra xem có phải chính chủ đang xem profile của mình không
               final bool isSelf = currentUser?.uid == uid;
 
               return SingleChildScrollView(
@@ -63,7 +63,6 @@ class UserProfilePage extends StatelessWidget {
                     _buildStatsRow(context, tasks.length, doneTasks.length),
                     const SizedBox(height: 35),
                     
-                    // Chỉ hiển thị danh hiệu nếu: là chính chủ HOẶC người dùng không bật ẩn danh hiệu
                     if (isSelf || !hideBadges)
                       _buildBadgesSection(context, tasks)
                     else
@@ -86,8 +85,7 @@ class UserProfilePage extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context, String name, String? photoUrl, String? selectedBadge, List<Task> tasks) {
-    const accentColor = Color(0xFFC9E8A2);
-    Color badgeColor = accentColor;
+    Color badgeColor = kPriority1Color;
     String displayRank = selectedBadge ?? _getDefaultRank(tasks);
     
     if (displayRank.contains("Huyền thoại")) badgeColor = Colors.amber;
@@ -106,13 +104,13 @@ class UserProfilePage extends StatelessWidget {
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            border: Border.all(color: accentColor, width: 2.5),
+            border: Border.all(color: kPriority1Color, width: 2.5),
           ),
           child: CircleAvatar(
             radius: 55,
-            backgroundColor: const Color(0xFF263042),
+            backgroundColor: kCardColor,
             backgroundImage: photoUrl != null ? NetworkImage(photoUrl) : null,
-            child: photoUrl == null ? const Icon(Icons.person, size: 50, color: accentColor) : null,
+            child: photoUrl == null ? const Icon(Icons.person, size: 50, color: Colors.white24) : null,
           ),
         ),
         const SizedBox(height: 16),
@@ -148,7 +146,7 @@ class UserProfilePage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF263042),
+        color: kCardColor,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: Colors.white.withOpacity(0.05)),
       ),
@@ -189,7 +187,7 @@ class UserProfilePage extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.all(30),
           decoration: BoxDecoration(
-            color: const Color(0xFF263042),
+            color: kCardColor,
             borderRadius: BorderRadius.circular(24),
           ),
           child: const Column(
@@ -239,7 +237,7 @@ class UserProfilePage extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: const Color(0xFF263042),
+            color: kCardColor,
             borderRadius: BorderRadius.circular(24),
           ),
           child: unlockedBadges.isEmpty 

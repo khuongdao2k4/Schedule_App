@@ -155,7 +155,7 @@ class _BadgesPageState extends State<BadgesPage> {
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border: Border.all(accentColor, width: 2.5),
+                        border: Border.all(color: accentColor, width: 2.5),
                       ),
                       child: CircleAvatar(
                         radius: 50,

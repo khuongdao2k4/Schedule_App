@@ -18,6 +18,29 @@ class TaskDetailPage extends StatelessWidget {
   final Task task;
   const TaskDetailPage({super.key, required this.task});
 
+  String _translatePriority(String priority) {
+    switch (priority) {
+      case 'High': return 'Cao';
+      case 'Medium': return 'Trung bình';
+      case 'Low': return 'Thấp';
+      default: return priority;
+    }
+  }
+
+  String _translateCategory(String category) {
+    switch (category) {
+      case 'Work': return 'Công việc';
+      case 'Study': return 'Học tập';
+      case 'Personal': return 'Cá nhân';
+      case 'Health': return 'Sức khỏe';
+      case 'Entertainment': return 'Giải trí';
+      case 'Self-Improvement': return 'Phát triển bản thân';
+      case 'Finance': return 'Tài chính';
+      case 'Other': return 'Khác';
+      default: return category;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
@@ -165,9 +188,9 @@ class TaskDetailPage extends StatelessWidget {
             // Chi tiết khác
             Row(
               children: [
-                Expanded(child: _buildDetailTile("Ưu tiên", task.priority, Icons.flag_outlined, kPriority3Color)),
+                Expanded(child: _buildDetailTile("Ưu tiên", _translatePriority(task.priority), Icons.flag_outlined, kPriority3Color)),
                 const SizedBox(width: 16),
-                Expanded(child: _buildDetailTile("Chủ đề", task.category, Icons.category_outlined, kPriority2Color)),
+                Expanded(child: _buildDetailTile("Chủ đề", _translateCategory(task.category), Icons.category_outlined, kPriority2Color)),
               ],
             ),
             const SizedBox(height: 30),
