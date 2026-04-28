@@ -5,6 +5,7 @@ class Group {
   final String name;
   final String ownerId;
   final List<String> members;
+  final List<String> invitedMembers; // Thêm danh sách mời
   final DateTime createdAt;
   final String? lastMessage;
   final DateTime? lastMessageTime;
@@ -14,6 +15,7 @@ class Group {
     required this.name,
     required this.ownerId,
     required this.members,
+    this.invitedMembers = const [],
     required this.createdAt,
     this.lastMessage,
     this.lastMessageTime,
@@ -24,6 +26,7 @@ class Group {
       'name': name,
       'ownerId': ownerId,
       'members': members,
+      'invitedMembers': invitedMembers,
       'createdAt': Timestamp.fromDate(createdAt),
       'lastMessage': lastMessage,
       'lastMessageTime': lastMessageTime != null ? Timestamp.fromDate(lastMessageTime!) : null,
@@ -36,6 +39,7 @@ class Group {
       name: map['name'] ?? '',
       ownerId: map['ownerId'] ?? '',
       members: List<String>.from(map['members'] ?? []),
+      invitedMembers: List<String>.from(map['invitedMembers'] ?? []),
       createdAt: map['createdAt'] != null 
           ? (map['createdAt'] as Timestamp).toDate() 
           : DateTime.now(),

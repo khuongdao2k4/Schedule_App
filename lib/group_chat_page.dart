@@ -305,6 +305,10 @@ class _TaskMessageItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     bool isPending = task.status == 'pending';
+    final now = DateTime.now();
+    // Logic mới: Task hết hạn nếu chưa duyệt và đã quá endTime
+    bool isExpired = isPending && task.endTime != null && now.isAfter(task.endTime!);
+    
     final timeFormat = DateFormat('HH:mm');
     final creationTimeStr = timeFormat.format(task.createdAt);
     final taskTimeStr = "${task.startTime != null ? timeFormat.format(task.startTime!) : '--:--'} - ${task.endTime != null ? timeFormat.format(task.endTime!) : '--:--'}";
@@ -344,42 +348,45 @@ class _TaskMessageItem extends StatelessWidget {
                   topLeft: const Radius.circular(20), topRight: const Radius.circular(20),
                   bottomLeft: Radius.circular(isMine ? 20 : 4), bottomRight: Radius.circular(isMine ? 4 : 20),
                 ),
-                border: Border.all(color: isPending ? Colors.orangeAccent.withOpacity(0.2) : Colors.white.withOpacity(0.05)),
+                border: Border.all(color: isExpired ? Colors.redAccent.withOpacity(0.3) : (isPending ? Colors.orangeAccent.withOpacity(0.2) : Colors.white.withOpacity(0.05))),
               ),
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(14),
-                    child: Row(
-                      children: [
-                        Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: kPriority1Color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), child: Icon(task.iconCode != null ? IconData(task.iconCode!, fontFamily: 'MaterialIcons') : Icons.assignment, color: kPriority1Color, size: 20)),
-                        const SizedBox(width: 12),
-                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text(task.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15), maxLines: 1, overflow: TextOverflow.ellipsis),
-                          Text(taskTimeStr, style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 11)),
-                        ])),
-                        _StatusBadge(status: task.status),
-                      ],
+              child: Opacity(
+                opacity: isExpired ? 0.6 : 1.0,
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Row(
+                        children: [
+                          Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: kPriority1Color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), child: Icon(task.iconCode != null ? IconData(task.iconCode!, fontFamily: 'MaterialIcons') : Icons.assignment, color: kPriority1Color, size: 20)),
+                          const SizedBox(width: 12),
+                          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text(task.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15), maxLines: 1, overflow: TextOverflow.ellipsis),
+                            Text(taskTimeStr, style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 11)),
+                          ])),
+                          _StatusBadge(status: task.status, isExpired: isExpired),
+                        ],
+                      ),
                     ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(color: Colors.black12, borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20))),
-                    child: Row(
-                      children: [
-                        Expanded(child: LinearProgressIndicator(value: progress, minHeight: 4, backgroundColor: Colors.white10, valueColor: const AlwaysStoppedAnimation(kPriority1Color))),
-                        const SizedBox(width: 10),
-                        Text("${(progress * 100).toInt()}%", style: const TextStyle(color: kPriority1Color, fontSize: 10, fontWeight: FontWeight.bold)),
-                        const SizedBox(width: 8),
-                        UserAvatarStack(uids: task.assignees, size: 20),
-                      ],
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(color: Colors.black12, borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20))),
+                      child: Row(
+                        children: [
+                          Expanded(child: LinearProgressIndicator(value: progress, minHeight: 4, backgroundColor: Colors.white10, valueColor: const AlwaysStoppedAnimation(kPriority1Color))),
+                          const SizedBox(width: 10),
+                          Text("${(progress * 100).toInt()}%", style: const TextStyle(color: kPriority1Color, fontSize: 10, fontWeight: FontWeight.bold)),
+                          const SizedBox(width: 8),
+                          UserAvatarStack(uids: task.assignees, size: 20),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
-          if (isPending && isOwner && task.id != null)
+          if (isPending && isOwner && task.id != null && !isExpired)
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Row(
@@ -390,6 +397,11 @@ class _TaskMessageItem extends StatelessWidget {
                   _ActionButton(label: "Phê duyệt", color: kPriority1Color, isPrimary: true, onPressed: () => GroupService().approveTask(task.id!)),
                 ],
               ),
+            ),
+          if (isExpired)
+            Padding(
+              padding: const EdgeInsets.only(top: 4, left: 4, right: 4),
+              child: Text("Hết hạn duyệt", style: TextStyle(color: Colors.redAccent.withOpacity(0.7), fontSize: 10, fontWeight: FontWeight.bold, fontStyle: FontStyle.italic)),
             ),
         ],
       ),
@@ -417,9 +429,13 @@ class _ActionButton extends StatelessWidget {
 
 class _StatusBadge extends StatelessWidget {
   final String status;
-  const _StatusBadge({required this.status});
+  final bool isExpired;
+  const _StatusBadge({required this.status, this.isExpired = false});
   @override
   Widget build(BuildContext context) {
+    if (isExpired) {
+      return Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.redAccent.withOpacity(0.1), borderRadius: BorderRadius.circular(4)), child: const Text("HẾT HẠN", style: TextStyle(color: Colors.redAccent, fontSize: 8, fontWeight: FontWeight.bold)));
+    }
     Color c = (status == 'pending') ? Colors.orangeAccent : (status == 'declined' ? Colors.redAccent : kPriority1Color);
     String t = (status == 'pending') ? "CHỜ DUYỆT" : (status == 'declined' ? "TỪ CHỐI" : "ĐÃ DUYỆT");
     return Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: c.withOpacity(0.1), borderRadius: BorderRadius.circular(4)), child: Text(t, style: TextStyle(color: c, fontSize: 8, fontWeight: FontWeight.bold)));

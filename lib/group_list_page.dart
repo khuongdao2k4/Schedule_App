@@ -78,7 +78,6 @@ class _GroupListPageState extends State<GroupListPage> {
       backgroundColor: kBackgroundColor,
       body: Stack(
         children: [
-          // Background Mesh Gradients
           Positioned(
             top: -80, right: -80,
             child: _BlurredOrb(color: kPriority1Color.withOpacity(0.12), size: 250),
@@ -123,7 +122,6 @@ class _GroupListPageState extends State<GroupListPage> {
                 ),
               ),
 
-              // Search Bar
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
@@ -149,7 +147,6 @@ class _GroupListPageState extends State<GroupListPage> {
                 ),
               ),
 
-              // Group List
               StreamBuilder<List<Group>>(
                 stream: _groupService.getGroups(user?.uid ?? ''),
                 builder: (context, snapshot) {
@@ -176,6 +173,7 @@ class _GroupListPageState extends State<GroupListPage> {
                         (context, index) => _GroupListItem(
                           group: groups[index],
                           color: [kPriority1Color, kPriority2Color, kPriority3Color, Colors.blueAccent][index % 4],
+                          currentUserId: user?.uid ?? '',
                         ),
                         childCount: groups.length,
                       ),
@@ -196,11 +194,15 @@ class _GroupListPageState extends State<GroupListPage> {
 class _GroupListItem extends StatelessWidget {
   final Group group;
   final Color color;
+  final String currentUserId;
 
-  const _GroupListItem({required this.group, required this.color});
+  const _GroupListItem({required this.group, required this.color, required this.currentUserId});
 
   @override
   Widget build(BuildContext context) {
+    final bool isInvited = group.invitedMembers.contains(currentUserId);
+    final GroupService groupService = GroupService();
+
     String lastTime = "";
     if (group.lastMessageTime != null) {
       lastTime = DateFormat('HH:mm').format(group.lastMessageTime!);
@@ -210,70 +212,105 @@ class _GroupListItem extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => GroupChatPage(group: group))),
-          borderRadius: BorderRadius.circular(24),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.03),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.white.withOpacity(0.03)),
-            ),
-            child: Row(
-              children: [
-                // Avatar Nhóm
-                Container(
-                  width: 56, height: 56,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft, end: Alignment.bottomRight,
-                      colors: [color.withOpacity(0.8), color],
-                    ),
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: Center(
-                    child: Text(
-                      group.name.isNotEmpty ? group.name[0].toUpperCase() : "?",
-                      style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 24),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                // Thông tin nhóm
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(group.name, 
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 17, letterSpacing: 0.2)),
-                          ),
-                          Text(lastTime, style: TextStyle(color: Colors.white.withOpacity(0.2), fontSize: 11)),
-                        ],
+      child: Opacity(
+        opacity: isInvited ? 0.5 : 1.0,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: isInvited ? null : () => Navigator.push(context, MaterialPageRoute(builder: (_) => GroupChatPage(group: group))),
+            borderRadius: BorderRadius.circular(24),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(isInvited ? 0.01 : 0.03),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: Colors.white.withOpacity(isInvited ? 0.01 : 0.03)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 56, height: 56,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft, end: Alignment.bottomRight,
+                        colors: [color.withOpacity(0.8), color],
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        group.lastMessage ?? "Chưa có tin nhắn mới",
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: group.lastMessage != null ? Colors.white60 : Colors.white24,
-                          fontSize: 13,
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Center(
+                      child: Text(
+                        group.name.isNotEmpty ? group.name[0].toUpperCase() : "?",
+                        style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 24),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(group.name, 
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 17, letterSpacing: 0.2)),
+                            ),
+                            if (!isInvited) Text(lastTime, style: TextStyle(color: Colors.white.withOpacity(0.2), fontSize: 11)),
+                          ],
                         ),
-                      ),
-                      const SizedBox(height: 10),
-                      // Member Facepile
-                      _MemberFacepile(memberCount: group.members.length, color: color),
-                    ],
+                        const SizedBox(height: 6),
+                        Text(
+                          isInvited ? "Bạn được mời vào nhóm này" : (group.lastMessage ?? "Chưa có tin nhắn mới"),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: (group.lastMessage != null || isInvited) ? Colors.white60 : Colors.white24,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        _MemberFacepile(memberCount: group.members.length, color: color),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                  if (isInvited)
+                    PopupMenuButton<String>(
+                      icon: const Icon(Icons.more_vert_rounded, color: Colors.white54),
+                      color: kCardColor,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      onSelected: (value) async {
+                        if (value == 'accept') {
+                          await groupService.acceptInvitation(group.id, currentUserId);
+                        } else if (value == 'decline') {
+                          await groupService.declineInvitation(group.id, currentUserId);
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'accept',
+                          child: Row(
+                            children: [
+                              Icon(Icons.check_circle_outline, color: Colors.greenAccent, size: 20),
+                              SizedBox(width: 12),
+                              Text("Chấp nhận", style: TextStyle(color: Colors.white, fontSize: 14)),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'decline',
+                          child: Row(
+                            children: [
+                              Icon(Icons.cancel_outlined, color: Colors.redAccent, size: 20),
+                              SizedBox(width: 12),
+                              Text("Từ chối", style: TextStyle(color: Colors.white, fontSize: 14)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
             ),
           ),
         ),
