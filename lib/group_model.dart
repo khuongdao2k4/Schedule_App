@@ -36,7 +36,9 @@ class Group {
       name: map['name'] ?? '',
       ownerId: map['ownerId'] ?? '',
       members: List<String>.from(map['members'] ?? []),
-      createdAt: (map['createdAt'] as Timestamp).toDate(),
+      createdAt: map['createdAt'] != null 
+          ? (map['createdAt'] as Timestamp).toDate() 
+          : DateTime.now(),
       lastMessage: map['lastMessage'],
       lastMessageTime: map['lastMessageTime'] != null 
           ? (map['lastMessageTime'] as Timestamp).toDate() 

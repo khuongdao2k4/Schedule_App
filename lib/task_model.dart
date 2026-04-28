@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Task {
   final String? id;
-  final String userId; // Creator
+  final String userId; 
   final String title;
   final String description;
   final DateTime createdAt;
@@ -16,13 +16,11 @@ class Task {
   final int estimatedMinutes;
   final int actualMinutes;
   final int rescheduleCount;
-  final List<String> assignees; // List of user IDs
-  final List<String> completedBy; // List of user IDs who completed it
-  final List<String> acceptedBy; // List of user IDs who accepted the task
-  
-  // New fields for Group feature
+  final List<String> assignees;
+  final List<String> completedBy;
+  final List<String> acceptedBy;
   final String? groupId;
-  final String status; // 'pending' (proposal), 'approved', 'declined'
+  final String status;
   final String? proposedBy;
 
   Task({
@@ -45,7 +43,7 @@ class Task {
     List<String>? completedBy,
     List<String>? acceptedBy,
     this.groupId,
-    this.status = 'approved', // Default to approved for personal tasks
+    this.status = 'approved',
     this.proposedBy,
   })  : createdAt = createdAt ?? DateTime.now(),
         assignees = assignees ?? [userId],
@@ -53,27 +51,12 @@ class Task {
         acceptedBy = acceptedBy ?? [userId];
 
   Task copyWith({
-    String? id,
-    String? userId,
-    String? title,
-    String? description,
-    DateTime? createdAt,
-    DateTime? startTime,
-    DateTime? endTime,
-    DateTime? dueDate,
-    bool? isDone,
-    int? iconCode,
-    String? priority,
-    String? category,
-    int? estimatedMinutes,
-    int? actualMinutes,
-    int? rescheduleCount,
-    List<String>? assignees,
-    List<String>? completedBy,
-    List<String>? acceptedBy,
-    String? groupId,
-    String? status,
-    String? proposedBy,
+    String? id, String? userId, String? title, String? description,
+    DateTime? createdAt, DateTime? startTime, DateTime? endTime, DateTime? dueDate,
+    bool? isDone, int? iconCode, String? priority, String? category,
+    int? estimatedMinutes, int? actualMinutes, int? rescheduleCount,
+    List<String>? assignees, List<String>? completedBy, List<String>? acceptedBy,
+    String? groupId, String? status, String? proposedBy,
   }) {
     return Task(
       id: id ?? this.id,
@@ -131,7 +114,7 @@ class Task {
       userId: map['userId'] ?? '',
       title: map['title'] ?? '',
       description: map['description'] ?? '',
-      createdAt: (map['createdAt'] as Timestamp).toDate(),
+      createdAt: map['createdAt'] != null ? (map['createdAt'] as Timestamp).toDate() : DateTime.now(),
       startTime: map['startTime'] != null ? (map['startTime'] as Timestamp).toDate() : null,
       endTime: map['endTime'] != null ? (map['endTime'] as Timestamp).toDate() : null,
       dueDate: map['dueDate'] != null ? (map['dueDate'] as Timestamp).toDate() : null,
